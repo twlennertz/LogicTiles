@@ -23,6 +23,13 @@
 #include <msp430.h>
 #include "main.h"
 
+typedef enum{M0, M1, M2} magnet;
+typedef enum{T0, T1, T2, T3, T4, T5, T6, T7} tile;
+static tile curTile = T0;
+static magnet curMagnet = M0;
+
+
+
 void initADC() {
 
     P1SEL1 |= BIT5;                         // Configure P1.1 for ADC
@@ -41,6 +48,10 @@ int main(void) {
     WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
                                             // to activate previously configured port settings
+
+    char magList[3] = {MAG_0, MAG_1, MAG_2};
+    char tileList[8] = {TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7};
+
     P1DIR |= 0x01 | 0x02;                          // Set P1.0 to output direction
 
     P4DIR |= TILE_CTRL;
@@ -55,9 +66,19 @@ int main(void) {
 
     for(;;) {
 
-        P1OUT ^= 0x02;
-        __delay_cycles(5000);
         ADC12CTL0 |= ADC12ENC | ADC12SC;    // Start sampling/conversion
+
+        __bis_SR_register(LPM0_bits | GIE); // LPM0, ADC12_ISR will force exit
+        __no_operation();                   // For debugger
+
+        if (curTile == T7) {
+            curTile = T0;
+        }
+        else {
+            curTile++;
+        }
+
+        P4OUT = tileList[curTile];
 
     }
 
@@ -88,7 +109,7 @@ void __attribute__ ((interrupt(ADC12_B_VECTOR))) ADC12_ISR (void)
                 P1OUT &= ~BIT0;             // P1.0 = 0
 
                 // Exit from LPM0 and continue executing main
-                //__bic_SR_register_on_exit(LPM0_bits);
+                __bic_SR_register_on_exit(LPM0_bits);
             break;
         case ADC12IV__ADC12IFG1:   break;   // Vector 14:  ADC12MEM1
         case ADC12IV__ADC12IFG2:   break;   // Vector 16:  ADC12MEM2
