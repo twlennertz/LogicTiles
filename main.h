@@ -20,6 +20,8 @@
 #define MAG_1 0b01000000
 #define MAG_2 0b01100000
 
+#define LED0 0x01
+#define LED1 0x02
 #define ADC_5 0x06
 
 void initADC();

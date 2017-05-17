@@ -31,9 +31,12 @@ static magnet curMagnet = M0;
 const char magList[3] = { MAG_0, MAG_1, MAG_2 };
 const char tileList[8] = { TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7 };
 
+/*
+ * Initializes ADC1 with input P1.5
+ */
 void initADC() {
 
-    P1SEL1 |= BIT5;                         // Configure P1.1 for ADC
+    P1SEL1 |= BIT5;                         // Configure P1.5 for ADC
     P1SEL0 |= BIT5;
 
     // Configure ADC12
@@ -45,7 +48,39 @@ void initADC() {
 
 }
 
-void magCycle() {
+/*
+ * Initializes USART 01
+ * NOTE: This function has not been tested yet!
+ */
+void initUSART() {
+
+    // Startup clock system with max DCO setting ~8MHz
+    CSCTL0_H = CSKEY_H;                     // Unlock CS registers
+    CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 8MHz
+    CSCTL2 = SELA__VLOCLK | SELS__DCOCLK | SELM__DCOCLK;
+    CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
+    CSCTL0_H = 0;                           // Lock CS registers
+
+    // Configure USCI_A0 for UART mode
+    UCA0CTLW0 = UCSWRST;                    // Put eUSCI in reset
+    UCA0CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
+    // Baud Rate calculation
+    // 8000000/(16*9600) = 52.083
+    // Fractional portion = 0.083
+    // User's Guide Table 21-4: UCBRSx = 0x04
+    // UCBRFx = int ( (52.083-52)*16) = 1
+    UCA0BRW = 52;                           // 8000000/16/9600
+    UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+    UCA0CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+    UCA0IE |= UCRXIE;                       // Enable USCI_A0 RX interrupt
+}
+
+/*
+ * NOTE: Function mainly for Debugging Purposes
+ *
+ * Cycles all magnets for each tile
+ */
+void cycleAllMag() {
 
     if (curTile == T7) {
         curTile = T0;
@@ -64,30 +99,68 @@ void magCycle() {
     P4OUT = tileList[curTile];
 }
 
+/*
+ * Cycles through all tiles, and performs
+ * and A-D conversion on Magnet 1 (Detector Magnet).
+ * The appropriate IRQ will determine if a new tile is
+ * detected.
+ */
+void findNewTile() {
+
+    P2OUT = M1;
+
+    if (curTile == T7) {
+        curTile = T0;
+    }
+    else {
+        curTile++;
+    }
+
+    P4OUT = tileList[curTile];
+
+}
+
+/*
+ * Given the current layout of tiles on the board, this
+ * function will create the corresponding logic circuit.
+ */
+void constructCircuit() {
+
+}
+
+/*
+ * Adds a new tile to the list of running tiles.
+ * The other sensors of the tile are to be read, resulting
+ * into a 3 byte code that identifies a unique tile.
+ */
+void addTile(int tile) {
+
+
+}
+
 int main(void) {
-    WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog timer
-    PM5CTL0 &= ~LOCKLPM5;                   // Disable the GPIO power-on default high-impedance mode
-                                            // to activate previously configured port settings
+    WDTCTL = WDTPW | WDTHOLD;                   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;                       // Disable the GPIO power-on default high-impedance mode
+                                                // to activate previously configured port settings
 
-    P1DIR |= 0x01 | 0x02;                          // Set P1.0 to output direction
-
-    P4DIR |= TILE_CTRL;
-    P2DIR |= MAG_CTRL;
+    P1DIR |= LED0 | LED1;                       //Set LEDs as output
+    P4DIR |= TILE_CTRL;                         //Set Tile select pins as outputs
+    P2DIR |= MAG_CTRL;                          //Set Mag select pins as outputs
 
     initADC();
 
     //P1OUT &= ~0x02;
     P1OUT |= 0x02 | BIT0;
-    P4OUT = TILE_0;                              //Select Tile 0
+    P4OUT = TILE_0;                             //Select Tile 0
     P2OUT = MAG_2;                              //Select Mag 0
 
     for(;;) {
 
         __delay_cycles(1000);
-        ADC12CTL0 |= ADC12ENC | ADC12SC;    // Start sampling/conversion
+        ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
 
-        __bis_SR_register(LPM0_bits | GIE); // LPM0, ADC12_ISR will force exit
-        __no_operation();                   // For debugger
+        __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
+        __no_operation();                       // For debugger
 
 
     }
@@ -95,6 +168,9 @@ int main(void) {
     //return 0;
 }
 
+/*
+ * ADC INTERRUPT VECTOR
+ */
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector = ADC12_B_VECTOR
 __interrupt void ADC12_ISR(void)
@@ -156,4 +232,32 @@ void __attribute__ ((interrupt(ADC12_B_VECTOR))) ADC12_ISR (void)
         default: break;
     }
 }
+
+/*
+ * USART INTERRUPT VECTOR
+ */
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=EUSCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(UCA0IV, USCI_UART_UCTXCPTIFG))
+    {
+        case USCI_NONE: break;
+        case USCI_UART_UCRXIFG:
+            while(!(UCA0IFG&UCTXIFG));
+            UCA0TXBUF = UCA0RXBUF;
+            __no_operation();
+            break;
+        case USCI_UART_UCTXIFG: break;
+        case USCI_UART_UCSTTIFG: break;
+        case USCI_UART_UCTXCPTIFG: break;
+        default: break;
+    }
+}
+
 

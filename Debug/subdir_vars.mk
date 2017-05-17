@@ -9,21 +9,27 @@ CMD_SRCS += \
 ../lnk_msp430fr5994.cmd 
 
 C_SRCS += \
-../blink.c 
+../blink.c \
+../main.c 
 
 C_DEPS += \
-./blink.d 
+./blink.d \
+./main.d 
 
 OBJS += \
-./blink.obj 
+./blink.obj \
+./main.obj 
 
 OBJS__QUOTED += \
-"blink.obj" 
+"blink.obj" \
+"main.obj" 
 
 C_DEPS__QUOTED += \
-"blink.d" 
+"blink.d" \
+"main.d" 
 
 C_SRCS__QUOTED += \
-"../blink.c" 
+"../blink.c" \
+"../main.c" 
 
 

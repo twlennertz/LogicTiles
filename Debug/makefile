@@ -11,6 +11,7 @@ GEN_CMDS__FLAG :=
 
 ORDERED_OBJS += \
 "./blink.obj" \
+"./main.obj" \
 "../lnk_msp430fr5994.cmd" \
 $(GEN_CMDS__FLAG) \
 -llibmath.a \
@@ -154,8 +155,8 @@ LogicTiles.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "blink.obj" 
-	-$(RM) "blink.d" 
+	-$(RM) "blink.obj" "main.obj" 
+	-$(RM) "blink.d" "main.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
