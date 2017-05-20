@@ -1,6 +1,8 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include <stdio.h>
+
 #define ADC1_PIN 0x06
 #define TILE_CTRL 0b00001110
 #define MAG_CTRL 0b01100000
@@ -20,9 +22,14 @@
 #define MAG_1 0b01000000
 #define MAG_2 0b01100000
 
+//PIN DEFINITIONS
 #define LED0 0x01
 #define LED1 0x02
 #define ADC_5 0x06
+
+//Error Codes
+#define BAD_CMD 1
+
 
 void initADC();
 

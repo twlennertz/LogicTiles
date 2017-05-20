@@ -27,11 +27,18 @@ typedef enum{M0, M1, M2} magnet;
 typedef enum{T0, T1, T2, T3, T4, T5, T6, T7} tile;
 typedef enum{START, IDLE_POLL, CMD_PARSE} state;
 
+/*Current States*/
 static tile curTile = T0;
 static magnet curMagnet = M0;
 
+/*Major Data structures*/
 const char magList[3] = { MAG_0, MAG_1, MAG_2 };
 const char tileList[8] = { TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7 };
+char uBuff[51];
+static int buffIndex = 0;
+
+/*Flags*/
+static char rxPending = 0;
 
 /* function declarations */
 void init();
@@ -167,30 +174,31 @@ int main(void) {
 
     /* Main state machine loop */
 
+    state currentState = IDLE_POLL;
+    __enable_interrupt();
     for(;;) {
-        state currentState = START;
 
-        switch (state) {
-        case START:
-
-            break;
+        switch (currentState) {
 
         case IDLE_POLL:
+            __disable_interrupt();
             currentState = idlePoll();
+            __enable_interrupt();
             break;
 
         case CMD_PARSE:
-
+            __disable_interrupt();
+            currentState = cmdParse();
+            __enable_interrupt();
             break;
 
         default:
             break;
         }
 
-        //__delay_cycles(1000);
         ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
 
-        __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
+        //__bis_SR_register(LPM0_bits | GIE);     // LPM0,
         __no_operation();                       // For debugger
 
 
@@ -200,12 +208,43 @@ int main(void) {
 }
 
 state idlePoll() {
-    state returnState = IDLE_POLL;
+
+    state nextState = IDLE_POLL;
 
     if (rxPending) {
 
+        uPrint("\r\nGoing to CMD_PARSE");
+        rxPending = 0;
+
+        nextState = CMD_PARSE;
     }
-    else if (pollTiles() != ) {
+
+    return nextState;
+}
+
+state cmdParse() {
+
+    char buf[5];
+
+    uPrint("\n\rI Read: ");
+    uPrint(uBuff);
+    uPrint("\r\n>:");
+
+    uBuff[0] = '\0';
+    return IDLE_POLL;
+}
+
+void reportError(int errorCode) {
+
+    switch (errorCode) {
+
+        case BAD_CMD:
+            uPrint("\r\nERROR: INPUT ERROR");
+            uPrint("\r\n>:");
+            break;
+
+        default:
+            break;
 
     }
 }
@@ -322,9 +361,28 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-            while(!(UCA0IFG&UCTXIFG));
-            UCA0TXBUF = UCA0RXBUF;
-            __no_operation();
+
+            if ((buffIndex == 50)) {
+                reportError(BAD_CMD);
+                buffIndex = 0;
+            }
+
+            if (UCA0RXBUF != '\r') {
+                if (UCA0RXBUF == '\bs' && buffIndex > 0) {
+                    buffIndex--;
+                }
+                else
+                    uBuff[buffIndex++] = UCA0RXBUF;
+
+                while(!(UCA0IFG&UCTXIFG));
+                UCA0TXBUF = UCA0RXBUF;
+            }
+            else {
+                uBuff[buffIndex] = '\0';
+                buffIndex = 0;
+                rxPending = 1;
+            }
+
             break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;
