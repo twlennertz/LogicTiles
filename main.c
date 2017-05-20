@@ -54,6 +54,9 @@ void initADC() {
  */
 void initUSART() {
 
+    P2SEL0 &= ~(BIT0 | BIT1);
+    P2SEL1 |= BIT0 | BIT1;                  // USCI_A0 UART operation
+
     // Startup clock system with max DCO setting ~8MHz
     CSCTL0_H = CSKEY_H;                     // Unlock CS registers
     CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 8MHz
@@ -138,6 +141,24 @@ void addTile(int tile) {
 
 }
 
+void uPrint(char * message) {
+
+    while(*message) {
+        while(!(UCA0IFG&UCTXIFG));
+        UCA0TXBUF = *message;
+        message++;
+    }
+}
+
+void printCmds() {
+
+    uPrint("\r\nCommands:");
+    uPrint("\r\n1: Print Commands");
+    uPrint("\r\n2: Change Inputs");
+    uPrint("\r\n3: I dunno, something else?");
+    uPrint("\n");
+}
+
 int main(void) {
     WDTCTL = WDTPW | WDTHOLD;                   // Stop watchdog timer
     PM5CTL0 &= ~LOCKLPM5;                       // Disable the GPIO power-on default high-impedance mode
@@ -148,15 +169,20 @@ int main(void) {
     P2DIR |= MAG_CTRL;                          //Set Mag select pins as outputs
 
     initADC();
+    initUSART();
 
     //P1OUT &= ~0x02;
     P1OUT |= 0x02 | BIT0;
     P4OUT = TILE_0;                             //Select Tile 0
     P2OUT = MAG_2;                              //Select Mag 0
 
+    uPrint("\r\nLogic Tiles Version 0.1");
+    printCmds();
+    uPrint("\r\n>: ");
+
     for(;;) {
 
-        __delay_cycles(1000);
+        //__delay_cycles(1000);
         ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
 
         __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
