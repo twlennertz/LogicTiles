@@ -25,28 +25,20 @@
 
 typedef enum{M0, M1, M2} magnet;
 typedef enum{T0, T1, T2, T3, T4, T5, T6, T7} tile;
+typedef enum{START, IDLE_POLL, CMD_PARSE} state;
+
 static tile curTile = T0;
 static magnet curMagnet = M0;
 
 const char magList[3] = { MAG_0, MAG_1, MAG_2 };
 const char tileList[8] = { TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7 };
 
-/*
- * Initializes ADC1 with input P1.5
- */
-void initADC() {
+/* function declarations */
+void init();
+void initADC();
+void initUSART();
 
-    P1SEL1 |= BIT5;                         // Configure P1.5 for ADC
-    P1SEL0 |= BIT5;
-
-    // Configure ADC12
-    ADC12CTL0 = ADC12SHT0_2 | ADC12ON;      // Sampling time, S&H=16, ADC12 on
-    ADC12CTL1 = ADC12SHP;                   // Use sampling timer
-    ADC12CTL2 |= ADC12RES_2;                // 12-bit conversion results
-    ADC12MCTL0 |= ADC12INCH_5;              // A1 ADC input select; Vref=AVCC
-    ADC12IER0 |= ADC12IE0;                  // Enable ADC conv complete interrupt
-
-}
+state idlePoll();
 
 /*
  * Initializes USART 01
@@ -139,22 +131,34 @@ void addTile(int tile) {
 }
 
 int main(void) {
-    WDTCTL = WDTPW | WDTHOLD;                   // Stop watchdog timer
-    PM5CTL0 &= ~LOCKLPM5;                       // Disable the GPIO power-on default high-impedance mode
-                                                // to activate previously configured port settings
+    init();
 
-    P1DIR |= LED0 | LED1;                       //Set LEDs as output
-    P4DIR |= TILE_CTRL;                         //Set Tile select pins as outputs
-    P2DIR |= MAG_CTRL;                          //Set Mag select pins as outputs
-
-    initADC();
-
+    /* Testing code */
     //P1OUT &= ~0x02;
     P1OUT |= 0x02 | BIT0;
     P4OUT = TILE_0;                             //Select Tile 0
     P2OUT = MAG_2;                              //Select Mag 0
 
+    /* Main state machine loop */
     for(;;) {
+        state currentState = START;
+
+        switch (state) {
+        case START:
+
+            break;
+
+        case IDLE_POLL:
+            currentState = idlePoll();
+            break;
+
+        case CMD_PARSE:
+
+            break;
+
+        default:
+            break;
+        }
 
         __delay_cycles(1000);
         ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
@@ -165,7 +169,49 @@ int main(void) {
 
     }
 
-    //return 0;
+    return 0;
+}
+
+state idlePoll() {
+    state returnState = IDLE_POLL;
+
+    if (rxPending) {
+
+    }
+    else if (pollTiles() != ) {
+
+    }
+}
+
+/* One-time configuration for I/O and various features */
+void init() {
+    WDTCTL = WDTPW | WDTHOLD;                   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;                       // Disable the GPIO power-on default high-impedance mode
+                                                // to activate previously configured port settings
+
+    P1DIR |= LED0 | LED1;                       //Set LEDs as output
+    P4DIR |= TILE_CTRL;                         //Set Tile select pins as outputs
+    P2DIR |= MAG_CTRL;                          //Set Mag select pins as outputs
+
+    initADC();
+    initUSART();
+}
+
+/*
+ * Initializes ADC1 with input P1.5
+ */
+void initADC() {
+
+    P1SEL1 |= BIT5;                         // Configure P1.5 for ADC
+    P1SEL0 |= BIT5;
+
+    // Configure ADC12
+    ADC12CTL0 = ADC12SHT0_2 | ADC12ON;      // Sampling time, S&H=16, ADC12 on
+    ADC12CTL1 = ADC12SHP;                   // Use sampling timer
+    ADC12CTL2 |= ADC12RES_2;                // 12-bit conversion results
+    ADC12MCTL0 |= ADC12INCH_5;              // A1 ADC input select; Vref=AVCC
+    ADC12IER0 |= ADC12IE0;                  // Enable ADC conv complete interrupt
+
 }
 
 /*
