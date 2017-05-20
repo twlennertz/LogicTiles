@@ -1,10 +1,10 @@
 ******************************************************************************
                   MSP430 Linker PC v16.9.1                     
 ******************************************************************************
->> Linked Sun May 14 18:19:34 2017
+>> Linked Sat May 20 14:33:50 2017
 
 OUTPUT FILE NAME:   <LogicTiles.out>
-ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 00004022
+ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 00004038
 
 
 MEMORY CONFIGURATION
@@ -20,7 +20,7 @@ MEMORY CONFIGURATION
   RAM                   00001c00   00001000  000000a0  00000f60  RWIX
   LEARAM                00002c00   00000ec8  00000000  00000ec8  RWIX
   LEASTACK              00003ac8   00000138  00000000  00000138  RWIX
-  FRAM                  00004000   0000bf80  0000003c  0000bf44  RWIX
+  FRAM                  00004000   0000bf80  000000c6  0000beba  RWIX
   JTAGSIGNATURE         0000ff80   00000004  00000004  00000000  RWIX  ffff 
   BSLSIGNATURE          0000ff84   00000004  00000004  00000000  RWIX  ffff 
   IPESIGNATURE          0000ff88   00000008  00000008  00000000  RWIX  ffff 
@@ -80,7 +80,7 @@ MEMORY CONFIGURATION
   INT53                 0000fffa   00000002  00000002  00000000  RWIX
   INT54                 0000fffc   00000002  00000002  00000000  RWIX
   RESET                 0000fffe   00000002  00000002  00000000  RWIX
-  FRAM2                 00010000   00034000  00000084  00033f7c  RWIX
+  FRAM2                 00010000   00034000  0000011a  00033ee6  RWIX
 
 
 SECTION ALLOCATION MAP
@@ -114,14 +114,18 @@ section   page    origin      length       input sections
 *          0    00004000    00000000     UNINITIALIZED
 
 .text:_isr 
-*          0    00004000    0000003c     
+*          0    00004000    00000052     
                   00004000    00000022     main.obj (.text:_isr:ADC12_ISR)
-                  00004022    00000012     rts430x_lc_rd_eabi.lib : boot_special.obj (.text:_isr:_c_int00_noinit_noargs_noexit)
-                  00004034    00000008                            : isr_trap.obj (.text:_isr:__TI_ISR_TRAP)
+                  00004022    00000016     main.obj (.text:_isr:USCI_A0_ISR)
+                  00004038    00000012     rts430x_lc_rd_eabi.lib : boot_special.obj (.text:_isr:_c_int00_noinit_noargs_noexit)
+                  0000404a    00000008                            : isr_trap.obj (.text:_isr:__TI_ISR_TRAP)
 
 .stack     0    00002b60    000000a0     UNINITIALIZED
                   00002b60    00000004     rts430x_lc_rd_eabi.lib : boot.obj (.stack)
                   00002b64    0000009c     --HOLE--
+
+.const     0    00004052    00000074     
+                  00004052    00000074     main.obj (.const:.string)
 
 $fill000   0    0000ff80    00000004     
                   0000ff80    00000004     --HOLE-- [fill = ffff]
@@ -233,7 +237,7 @@ EUSCI_B0   0    0000ffee    00000002
                   0000ffee    00000002     rts430x_lc_rd_eabi.lib : int47.obj (.int47)
 
 EUSCI_A0   0    0000fff0    00000002     
-                  0000fff0    00000002     rts430x_lc_rd_eabi.lib : int48.obj (.int48)
+                  0000fff0    00000002     main.obj (.int48)
 
 WDT        0    0000fff2    00000002     
                   0000fff2    00000002     rts430x_lc_rd_eabi.lib : int49.obj (.int49)
@@ -258,20 +262,23 @@ SYSNMI     0    0000fffc    00000002
 .reset     0    0000fffe    00000002     
                   0000fffe    00000002     rts430x_lc_rd_eabi.lib : boot.obj (.reset)
 
-.text      0    00010000    00000084     
-                  00010000    00000050     main.obj (.text:main)
-                  00010050    0000002a     main.obj (.text:initADC)
-                  0001007a    00000006     rts430x_lc_rd_eabi.lib : exit.obj (.text:abort)
-                  00010080    00000004                            : pre_init.obj (.text:_system_pre_init)
+.text      0    00010000    0000011a     
+                  00010000    0000005c     main.obj (.text:main)
+                  0001005c    00000046     main.obj (.text:initUSART)
+                  000100a2    0000002a     main.obj (.text:initADC)
+                  000100cc    0000002a     main.obj (.text:printCmds)
+                  000100f6    0000001a     main.obj (.text:uPrint)
+                  00010110    00000006     rts430x_lc_rd_eabi.lib : exit.obj (.text:abort)
+                  00010116    00000004                            : pre_init.obj (.text:_system_pre_init)
 
 MODULE SUMMARY
 
        Module             code   ro data   rw data
        ------             ----   -------   -------
     .\
-       main.obj           156    2         0      
+       main.obj           328    120       0      
     +--+------------------+------+---------+---------+
-       Total:             156    2         0      
+       Total:             328    120       0      
                                                   
     C:\ti\ccsv7\tools\compiler\ti-cgt-msp430_16.9.1.LTS\lib\rts430x_lc_rd_eabi.lib
        boot_special.obj   18     0         0      
@@ -308,7 +315,6 @@ MODULE SUMMARY
        int44.obj          0      2         0      
        int45.obj          0      2         0      
        int47.obj          0      2         0      
-       int48.obj          0      2         0      
        int49.obj          0      2         0      
        int50.obj          0      2         0      
        int51.obj          0      2         0      
@@ -316,11 +322,11 @@ MODULE SUMMARY
        int53.obj          0      2         0      
        int54.obj          0      2         0      
     +--+------------------+------+---------+---------+
-       Total:             36     74        0      
+       Total:             36     72        0      
                                                   
        Stack:             0      0         160    
     +--+------------------+------+---------+---------+
-       Grand Total:       192    76        160    
+       Grand Total:       364    192       160    
 
 
 GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
@@ -589,7 +595,7 @@ address   name
 000004bc  BIN2BCD                      
 000004bd  BIN2BCD_H                    
 000004bc  BIN2BCD_L                    
-0001007a  C$$EXIT                      
+00010110  C$$EXIT                      
 0000043e  CAPTIO0CTL                   
 0000043f  CAPTIO0CTL_H                 
 0000043e  CAPTIO0CTL_L                 
@@ -1825,12 +1831,13 @@ address   name
 0000070e  UCB3TXBUF                    
 0000070f  UCB3TXBUF_H                  
 0000070e  UCB3TXBUF_L                  
+00004022  USCI_A0_ISR                  
 0000015c  WDTCTL                       
 0000015d  WDTCTL_H                     
 0000015c  WDTCTL_L                     
 00002c00  __STACK_END                  
 000000a0  __STACK_SIZE                 
-00004034  __TI_ISR_TRAP                
+0000404a  __TI_ISR_TRAP                
 0000ffb4  __TI_int18                   
 0000ffb6  __TI_int19                   
 0000ffb8  __TI_int20                   
@@ -1872,17 +1879,20 @@ ffffffff  __TI_pprof_out_hndl
 ffffffff  __TI_prof_data_size          
 ffffffff  __TI_prof_data_start         
 ffffffff  __c_args__                   
-00004022  _c_int00_noinit_noargs_noexit
+00004038  _c_int00_noinit_noargs_noexit
 0000fffe  _reset_vector                
 00002b60  _stack                       
-00010080  _system_pre_init             
-0001007a  abort                        
+00010116  _system_pre_init             
+00010110  abort                        
 00004000  fram_ipe_end                 
 00004000  fram_ipe_start               
 00004000  fram_rw_start                
 00004000  fram_rx_start                
-00010050  initADC                      
+000100a2  initADC                      
+0001005c  initUSART                    
 00010000  main                         
+000100cc  printCmds                    
+000100f6  uPrint                       
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
@@ -3396,8 +3406,9 @@ address   name
 00004000  fram_ipe_start               
 00004000  fram_rw_start                
 00004000  fram_rx_start                
-00004022  _c_int00_noinit_noargs_noexit
-00004034  __TI_ISR_TRAP                
+00004022  USCI_A0_ISR                  
+00004038  _c_int00_noinit_noargs_noexit
+0000404a  __TI_ISR_TRAP                
 0000ffb4  __TI_int18                   
 0000ffb6  __TI_int19                   
 0000ffb8  __TI_int20                   
@@ -3437,13 +3448,16 @@ address   name
 0000fffc  __TI_int54                   
 0000fffe  _reset_vector                
 00010000  main                         
-00010050  initADC                      
-0001007a  C$$EXIT                      
-0001007a  abort                        
-00010080  _system_pre_init             
+0001005c  initUSART                    
+000100a2  initADC                      
+000100cc  printCmds                    
+000100f6  uPrint                       
+00010110  C$$EXIT                      
+00010110  abort                        
+00010116  _system_pre_init             
 ffffffff  __TI_pprof_out_hndl          
 ffffffff  __TI_prof_data_size          
 ffffffff  __TI_prof_data_start         
 ffffffff  __c_args__                   
 
-[1556 symbols]
+[1560 symbols]
