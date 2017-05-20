@@ -1,7 +1,17 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+
 #include <stdio.h>
+
+#define NUM_TILES 8 //8 * number of modules in board
+
+/* Hall Effect Sensor Value ranges for each magcode */
+#define U_MIN
+#define U_MAX
+#define S1_MIN
+#define N1_MAX
+
 
 #define ADC1_PIN 0x06
 #define TILE_CTRL 0b00001110
@@ -27,10 +37,21 @@
 #define LED1 0x02
 #define ADC_5 0x06
 
+
 //Error Codes
 #define BAD_CMD 1
 
+/* function declarations */
+void init();
 
 void initADC();
+void initUSART();
+void initTileCodes();
+
+state idlePoll();
+int pollTiles();
+void selectMag(magnet m);
+void selectTile(int tileNum);
+magcode readTileMag();
 
 #endif

@@ -22,14 +22,12 @@
 
 #include <msp430.h>
 #include "main.h"
-
-typedef enum{M0, M1, M2} magnet;
-typedef enum{T0, T1, T2, T3, T4, T5, T6, T7} tile;
-typedef enum{START, IDLE_POLL, CMD_PARSE} state;
+#include "tiles.h"
 
 /*Current States*/
 static tile curTile = T0;
 static magnet curMagnet = M0;
+static uint16_t lastReadADCValue = 0;
 
 /*Major Data structures*/
 const char magList[3] = { MAG_0, MAG_1, MAG_2 };
@@ -40,42 +38,7 @@ static int buffIndex = 0;
 /*Flags*/
 static char rxPending = 0;
 
-/* function declarations */
-void init();
-void initADC();
-void initUSART();
-
-state idlePoll();
-
-/*
- * Initializes USART 01
- * NOTE: This function has not been tested yet!
- */
-void initUSART() {
-
-    P2SEL0 &= ~(BIT0 | BIT1);
-    P2SEL1 |= BIT0 | BIT1;                  // USCI_A0 UART operation
-
-    // Startup clock system with max DCO setting ~8MHz
-    CSCTL0_H = CSKEY_H;                     // Unlock CS registers
-    CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 8MHz
-    CSCTL2 = SELA__VLOCLK | SELS__DCOCLK | SELM__DCOCLK;
-    CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
-    CSCTL0_H = 0;                           // Lock CS registers
-
-    // Configure USCI_A0 for UART mode
-    UCA0CTLW0 = UCSWRST;                    // Put eUSCI in reset
-    UCA0CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
-    // Baud Rate calculation
-    // 8000000/(16*9600) = 52.083
-    // Fractional portion = 0.083
-    // User's Guide Table 21-4: UCBRSx = 0x04
-    // UCBRFx = int ( (52.083-52)*16) = 1
-    UCA0BRW = 52;                           // 8000000/16/9600
-    UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
-    UCA0CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
-    UCA0IE |= UCRXIE;                       // Enable USCI_A0 RX interrupt
-}
+Static TileCodes tileStates[NUM_TILES];
 
 /*
  * NOTE: Function mainly for Debugging Purposes
@@ -173,9 +136,9 @@ int main(void) {
     uPrint("\r\n>: ");
 
     /* Main state machine loop */
-
     state currentState = IDLE_POLL;
     __enable_interrupt();
+
     for(;;) {
 
         switch (currentState) {
@@ -202,11 +165,16 @@ int main(void) {
         __no_operation();                       // For debugger
 
 
+
     }
 
     return 0;
 }
 
+/* Checks for a pending serial communication and dispatches to a processing state if detected.
+ * Otherwise moves on to polling for changed tile states on the board. If a changed tile is
+ * found, dispatches to an updating of the circuit state. Otherwise defaults to this state for
+ * next state. */
 state idlePoll() {
 
     state nextState = IDLE_POLL;
@@ -219,7 +187,141 @@ state idlePoll() {
         nextState = CMD_PARSE;
     }
 
+    else if (pollTiles() > 0) {
+        //may need to grab the above return value of pollTiles() in order to change. Might not.
+        nextState = UPDATE_CKT;
+    }
+  
     return nextState;
+}
+
+/* Returns the first tile number detected as being changed, or a negative number if no changes
+ * detected */
+int pollTiles() {
+    int returnTileNum = -1;
+    selectMag(M2); //Magnet 2 is baseline detection magnet
+
+    int i;
+    for(i = 0; i < NUM_TILES; i++) {
+        selectTile(i);
+        magcode currCode = readTileMag();
+
+        /* check if read code matches what is currently known */
+        if (tileStates[i].mag2 != currCode) {
+            tileStates[i].mag2 = currCode;
+            returnTileNum = i;
+            break;
+        }
+    }
+
+    return returnTileNum;
+}
+
+/* Sets the correct GPIO pins to MUX out the passed magnet number for whatever tile is currently selected */
+void selectMag(magnet mag) {
+
+}
+
+/* Sets the correct GPIO pins to MUX out the magnets for the passed tileNum of the board */
+void selectTile(int tileNum) {
+
+}
+
+/* Blocking function that initializes and waits out an ADC read and returns the magnet
+ * encoding for the currently mux-selected hall-effect sensor (selected with selectTile() and selectMag()) */
+magcode readTileMag() {
+    magcode returnCode = U;
+
+    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
+    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
+    __no_operation();                       // For debugger
+
+    if (lastReadADCValue < U_MIN) {
+        if (lastReadADCValue < S1_MIN)
+            returnCode = S2;
+        else
+            returnCode = S1;
+    }
+    else if (lastReadADCValue > U_MAX) {
+        if (lastReadADCValue > N1_MAX)
+            returnCode = N2;
+        else
+            returnCode = N1;
+    }
+
+    return returnCode;
+}
+
+/* One-time configuration for I/O and various features */
+void init() {
+    WDTCTL = WDTPW | WDTHOLD;                   // Stop watchdog timer
+    PM5CTL0 &= ~LOCKLPM5;                       // Disable the GPIO power-on default high-impedance mode
+                                                // to activate previously configured port settings
+
+    P1DIR |= LED0 | LED1;                       //Set LEDs as output
+    P4DIR |= TILE_CTRL;                         //Set Tile select pins as outputs
+    P2DIR |= MAG_CTRL;                          //Set Mag select pins as outputs
+
+    initADC();
+    initUSART();
+    initTileCodes();
+}
+
+/*
+ * Initializes ADC1 with input P1.5
+ */
+void initADC() {
+
+    P1SEL1 |= BIT5;                         // Configure P1.5 for ADC
+    P1SEL0 |= BIT5;
+
+    // Configure ADC12
+    ADC12CTL0 = ADC12SHT0_2 | ADC12ON;      // Sampling time, S&H=16, ADC12 on
+    ADC12CTL1 = ADC12SHP;                   // Use sampling timer
+    ADC12CTL2 |= ADC12RES_2;                // 12-bit conversion results
+    ADC12MCTL0 |= ADC12INCH_5;              // A1 ADC input select; Vref=AVCC
+    ADC12IER0 |= ADC12IE0;                  // Enable ADC conv complete interrupt
+
+}
+
+/*
+ * Initializes USART 01
+ * NOTE: This function has not been tested yet!
+ */
+void initUSART() {
+
+    P2SEL0 &= ~(BIT0 | BIT1);
+    P2SEL1 |= BIT0 | BIT1;                  // USCI_A0 UART operation
+
+    // Startup clock system with max DCO setting ~8MHz
+    CSCTL0_H = CSKEY_H;                     // Unlock CS registers
+    CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 8MHz
+    CSCTL2 = SELA__VLOCLK | SELS__DCOCLK | SELM__DCOCLK;
+    CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
+    CSCTL0_H = 0;                           // Lock CS registers
+
+    // Configure USCI_A0 for UART mode
+    UCA0CTLW0 = UCSWRST;                    // Put eUSCI in reset
+    UCA0CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
+    // Baud Rate calculation
+    // 8000000/(16*9600) = 52.083
+    // Fractional portion = 0.083
+    // User's Guide Table 21-4: UCBRSx = 0x04
+    // UCBRFx = int ( (52.083-52)*16) = 1
+    UCA0BRW = 52;                           // 8000000/16/9600
+    UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+    UCA0CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+    UCA0IE |= UCRXIE;                       // Enable USCI_A0 RX interrupt
+}
+
+/* Initializes the known states of each tile to U (no magnet present) */
+void initTileCodes() {
+    int i;
+    for (i = 0; i < NUM_TILES; i++) {
+        tileStates[i].mag0 = U;
+        tileStates[i].mag1 = U;
+        tileStates[i].mag2 = U;
+    }
 }
 
 state cmdParse() {
@@ -245,39 +347,8 @@ void reportError(int errorCode) {
 
         default:
             break;
-
+        
     }
-}
-
-/* One-time configuration for I/O and various features */
-void init() {
-    WDTCTL = WDTPW | WDTHOLD;                   // Stop watchdog timer
-    PM5CTL0 &= ~LOCKLPM5;                       // Disable the GPIO power-on default high-impedance mode
-                                                // to activate previously configured port settings
-
-    P1DIR |= LED0 | LED1;                       //Set LEDs as output
-    P4DIR |= TILE_CTRL;                         //Set Tile select pins as outputs
-    P2DIR |= MAG_CTRL;                          //Set Mag select pins as outputs
-
-    initADC();
-    initUSART();
-}
-
-/*
- * Initializes ADC1 with input P1.5
- */
-void initADC() {
-
-    P1SEL1 |= BIT5;                         // Configure P1.5 for ADC
-    P1SEL0 |= BIT5;
-
-    // Configure ADC12
-    ADC12CTL0 = ADC12SHT0_2 | ADC12ON;      // Sampling time, S&H=16, ADC12 on
-    ADC12CTL1 = ADC12SHP;                   // Use sampling timer
-    ADC12CTL2 |= ADC12RES_2;                // 12-bit conversion results
-    ADC12MCTL0 |= ADC12INCH_5;              // A1 ADC input select; Vref=AVCC
-    ADC12IER0 |= ADC12IE0;                  // Enable ADC conv complete interrupt
-
 }
 
 /*
@@ -301,13 +372,17 @@ void __attribute__ ((interrupt(ADC12_B_VECTOR))) ADC12_ISR (void)
         case ADC12IV__ADC12LOIFG:  break;   // Vector  8:  ADC12BLO
         case ADC12IV__ADC12INIFG:  break;   // Vector 10:  ADC12BIN
         case ADC12IV__ADC12IFG0:            // Vector 12:  ADC12MEM0 Interrupt
-            if (ADC12MEM0 >= 0x7ff)         // ADC12MEM0 = A1 > 0.5AVcc?
+            //test code
+            /*if (ADC12MEM0 >= 0x7ff)         // ADC12MEM0 = A1 > 0.5AVcc?
                 P1OUT |= BIT0;              // P1.0 = 1
             else
-                P1OUT &= ~BIT0;             // P1.0 = 0
+                P1OUT &= ~BIT0;             // P1.0 = 0 */
 
-                // Exit from LPM0 and continue executing main
-                __bic_SR_register_on_exit(LPM0_bits);
+            lastReadADCValue = ADC12MEM0;
+
+            // Exit from LPM0 and continue executing main
+            __bic_SR_register_on_exit(LPM0_bits);
+
             break;
         case ADC12IV__ADC12IFG1:   break;   // Vector 14:  ADC12MEM1
         case ADC12IV__ADC12IFG2:   break;   // Vector 16:  ADC12MEM2
