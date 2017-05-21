@@ -24,12 +24,19 @@
 #include "main.h"
 #include "tiles.h"
 
+/*Current States*/
 static tile curTile = T0;
 static magnet curMagnet = M0;
 static uint16_t lastReadADCValue = 0;
 
+/*Major Data structures*/
 const char magList[3] = { MAG_0, MAG_1, MAG_2 };
 const char tileList[8] = { TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7 };
+char uBuff[51];
+static int buffIndex = 0;
+
+/*Flags*/
+static char rxPending = 0;
 
 Static TileCodes tileStates[NUM_TILES];
 
@@ -129,26 +136,33 @@ int main(void) {
     uPrint("\r\n>: ");
 
     /* Main state machine loop */
+    state currentState = IDLE_POLL;
+    __enable_interrupt();
+
     for(;;) {
-        state currentState = START;
 
-        switch (state) {
-        case START:
-
-            break;
+        switch (currentState) {
 
         case IDLE_POLL:
+            __disable_interrupt();
             currentState = idlePoll();
+            __enable_interrupt();
             break;
 
         case CMD_PARSE:
-
+            __disable_interrupt();
+            currentState = cmdParse();
+            __enable_interrupt();
             break;
 
         default:
             break;
         }
 
+        ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
+
+        //__bis_SR_register(LPM0_bits | GIE);     // LPM0,
+        __no_operation();                       // For debugger
 
 
 
@@ -162,15 +176,23 @@ int main(void) {
  * found, dispatches to an updating of the circuit state. Otherwise defaults to this state for
  * next state. */
 state idlePoll() {
-    state returnState = IDLE_POLL;
+
+    state nextState = IDLE_POLL;
 
     if (rxPending) {
 
+        uPrint("\r\nGoing to CMD_PARSE");
+        rxPending = 0;
+
+        nextState = CMD_PARSE;
     }
+
     else if (pollTiles() > 0) {
         //may need to grab the above return value of pollTiles() in order to change. Might not.
-        returnState = UPDATE_CKT;
+        nextState = UPDATE_CKT;
     }
+  
+    return nextState;
 }
 
 /* Returns the first tile number detected as being changed, or a negative number if no changes
@@ -302,6 +324,33 @@ void initTileCodes() {
     }
 }
 
+state cmdParse() {
+
+    char buf[5];
+
+    uPrint("\n\rI Read: ");
+    uPrint(uBuff);
+    uPrint("\r\n>:");
+
+    uBuff[0] = '\0';
+    return IDLE_POLL;
+}
+
+void reportError(int errorCode) {
+
+    switch (errorCode) {
+
+        case BAD_CMD:
+            uPrint("\r\nERROR: INPUT ERROR");
+            uPrint("\r\n>:");
+            break;
+
+        default:
+            break;
+        
+    }
+}
+
 /*
  * ADC INTERRUPT VECTOR
  */
@@ -387,9 +436,28 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-            while(!(UCA0IFG&UCTXIFG));
-            UCA0TXBUF = UCA0RXBUF;
-            __no_operation();
+
+            if ((buffIndex == 50)) {
+                reportError(BAD_CMD);
+                buffIndex = 0;
+            }
+
+            if (UCA0RXBUF != '\r') {
+                if (UCA0RXBUF == '\bs' && buffIndex > 0) {
+                    buffIndex--;
+                }
+                else
+                    uBuff[buffIndex++] = UCA0RXBUF;
+
+                while(!(UCA0IFG&UCTXIFG));
+                UCA0TXBUF = UCA0RXBUF;
+            }
+            else {
+                uBuff[buffIndex] = '\0';
+                buffIndex = 0;
+                rxPending = 1;
+            }
+
             break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;
