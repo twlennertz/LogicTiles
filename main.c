@@ -1,33 +1,22 @@
-
-
 //***************************************************************************************
-//  MSP430 Blink the LED Demo - Software Toggle P1.0
+// MSP430 Logic Tile State Machine
+// Spring 2017 Senior Project
+// Cal Poly CPE Department
 //
-//  Description; Toggle P1.0 by xor'ing P1.0 inside of a software loop.
-//  ACLK = n/a, MCLK = SMCLK = default DCO
-//
-//                MSP430x5xx
-//             -----------------
-//         /|\|              XIN|-
-//          | |                 |
-//          --|RST          XOUT|-
-//            |                 |
-//            |             P1.0|-->LED
-//
-//  J. Stevenson
-//  Texas Instruments, Inc
-//  July 2013
-//  Built with Code Composer Studio v5
+// Tristan Lennertz & Andrew Wheeler
 //***************************************************************************************
 
 #include <msp430.h>
 #include "main.h"
 #include "tiles.h"
+#include <stdint.h>
 
 /*Current States*/
 static tile curTile = T0;
 static magnet curMagnet = M0;
-static uint16_t lastReadADCValue = 0;
+
+/* Holds last read value of ADC (from readTileMag()) */
+static volatile uint16_t lastReadADCValue = 0;
 
 /*Major Data structures*/
 const char magList[3] = { MAG_0, MAG_1, MAG_2 };
@@ -36,9 +25,10 @@ char uBuff[51];
 static int buffIndex = 0;
 
 /*Flags*/
-static char rxPending = 0;
+static volatile char rxPending = 0;
 
-Static TileCodes tileStates[NUM_TILES];
+/* The currently known states of the magnets for each tile on the board */
+static TileCodes tileStates[NUM_TILES];
 
 /*
  * NOTE: Function mainly for Debugging Purposes
@@ -186,70 +176,12 @@ state idlePoll() {
 
         nextState = CMD_PARSE;
     }
-
-    else if (pollTiles() > 0) {
+    else if (pollTiles(tileStates) > 0) {
         //may need to grab the above return value of pollTiles() in order to change. Might not.
         nextState = UPDATE_CKT;
     }
   
     return nextState;
-}
-
-/* Returns the first tile number detected as being changed, or a negative number if no changes
- * detected */
-int pollTiles() {
-    int returnTileNum = -1;
-    selectMag(M2); //Magnet 2 is baseline detection magnet
-
-    int i;
-    for(i = 0; i < NUM_TILES; i++) {
-        selectTile(i);
-        magcode currCode = readTileMag();
-
-        /* check if read code matches what is currently known */
-        if (tileStates[i].mag2 != currCode) {
-            tileStates[i].mag2 = currCode;
-            returnTileNum = i;
-            break;
-        }
-    }
-
-    return returnTileNum;
-}
-
-/* Sets the correct GPIO pins to MUX out the passed magnet number for whatever tile is currently selected */
-void selectMag(magnet mag) {
-
-}
-
-/* Sets the correct GPIO pins to MUX out the magnets for the passed tileNum of the board */
-void selectTile(int tileNum) {
-
-}
-
-/* Blocking function that initializes and waits out an ADC read and returns the magnet
- * encoding for the currently mux-selected hall-effect sensor (selected with selectTile() and selectMag()) */
-magcode readTileMag() {
-    magcode returnCode = U;
-
-    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
-    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
-    __no_operation();                       // For debugger
-
-    if (lastReadADCValue < U_MIN) {
-        if (lastReadADCValue < S1_MIN)
-            returnCode = S2;
-        else
-            returnCode = S1;
-    }
-    else if (lastReadADCValue > U_MAX) {
-        if (lastReadADCValue > N1_MAX)
-            returnCode = N2;
-        else
-            returnCode = N1;
-    }
-
-    return returnCode;
 }
 
 /* One-time configuration for I/O and various features */
@@ -261,6 +193,7 @@ void init() {
     P1DIR |= LED0 | LED1;                       //Set LEDs as output
     P4DIR |= TILE_CTRL;                         //Set Tile select pins as outputs
     P2DIR |= MAG_CTRL;                          //Set Mag select pins as outputs
+    P3DIR |= MODULE_CTRL;                       //Set Module select pins as outputs
 
     initADC();
     initUSART();
@@ -326,13 +259,14 @@ void initTileCodes() {
 
 state cmdParse() {
 
-    char buf[5];
+    //char buf[5];
 
     uPrint("\n\rI Read: ");
     uPrint(uBuff);
     uPrint("\r\n>:");
 
     uBuff[0] = '\0';
+
     return IDLE_POLL;
 }
 
@@ -349,6 +283,32 @@ void reportError(int errorCode) {
             break;
         
     }
+}
+
+/* Blocking function that initializes and waits out an ADC read and returns the magnet
+ * encoding for the currently mux-selected hall-effect sensor (selected with selectBoardTile() and selectMag())
+ * in tiles.c */
+magcode readTileMag() {
+    magcode returnCode = U;
+
+    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
+    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
+    __no_operation();                       // For debugger
+
+    if (lastReadADCValue < U_MIN) {
+        if (lastReadADCValue < S1_MIN)
+            returnCode = S2;
+        else
+            returnCode = S1;
+    }
+    else if (lastReadADCValue > U_MAX) {
+        if (lastReadADCValue > N1_MAX)
+            returnCode = N2;
+        else
+            returnCode = N1;
+    }
+
+    return returnCode;
 }
 
 /*
@@ -465,5 +425,3 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         default: break;
     }
 }
-
-

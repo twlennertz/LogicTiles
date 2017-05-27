@@ -9,21 +9,27 @@ CMD_SRCS += \
 ../lnk_msp430fr5994.cmd 
 
 C_SRCS += \
-../main.c 
+../main.c \
+../tiles.c 
 
 C_DEPS += \
-./main.d 
+./main.d \
+./tiles.d 
 
 OBJS += \
-./main.obj 
+./main.obj \
+./tiles.obj 
 
 OBJS__QUOTED += \
-"main.obj" 
+"main.obj" \
+"tiles.obj" 
 
 C_DEPS__QUOTED += \
-"main.d" 
+"main.d" \
+"tiles.d" 
 
 C_SRCS__QUOTED += \
-"../main.c" 
+"../main.c" \
+"../tiles.c" 
 
 
