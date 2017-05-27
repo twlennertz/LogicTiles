@@ -19,6 +19,9 @@
 #include "main.h"
 #include "tiles.h"
 
+/* Keeps track of the currently selected tile */
+static int currSelTile = 0;
+
 /* Returns the first tile number detected as being changed with regard to the passed in,
  * current TileCodes structure, or a negative number if no changes detected. tileStates
  * must be NUM_TILES in size (one structure for each tile on board */
@@ -52,19 +55,23 @@ int pollTiles(TileCodes *tileStates) {
 void selectBoardTile(int tileNum) {
     int rowNum, colNum, moduleNum, moduleTileNum;
 
-    /* Determine the tile row and column #s. */
-    rowNum = tileNum / TILE_WIDTH;
-    colNum = tileNum - (rowNum * TILE_WIDTH);
+    if (tileNum != currSelTile) {
+        currSelTile = tileNum;
 
-    /* Determine the Module number and set the MUX to the output of that module
-     * Modules are numbered in the same type of ordering as tiles (left -> right, top->bottom) */
-    moduleNum = ((rowNum / 2) * MODULE_COLUMNS) + (colNum / 4);
-    selectModule(moduleNum);
+        /* Determine the tile row and column #s. */
+        rowNum = tileNum / TILE_WIDTH;
+        colNum = tileNum - (rowNum * TILE_WIDTH);
 
-    /* Determine which of the tiles on the particular selected modules needs to be selected for a read,
-     * and select it with the selectModuleTile muxing function */
-    moduleTileNum = ((rowNum % 2) * 4) + (colNum % 4);
-    selectModuleTile(moduleTileNum);
+        /* Determine the Module number and set the MUX to the output of that module
+         * Modules are numbered in the same type of ordering as tiles (left -> right, top->bottom) */
+        moduleNum = ((rowNum / 2) * MODULE_COLUMNS) + (colNum / 4);
+        selectModule(moduleNum);
+
+        /* Determine which of the tiles on the particular selected modules needs to be selected for a read,
+         * and select it with the selectModuleTile muxing function */
+        moduleTileNum = ((rowNum % 2) * 4) + (colNum % 4);
+        selectModuleTile(moduleTileNum);
+    }
 }
 
 /* Sets the correct GPIO pins to MUX out the passed magnet number for whatever tile is currently selected.

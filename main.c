@@ -176,13 +176,20 @@ state idlePoll() {
 
         nextState = CMD_PARSE;
     }
-    else if (pollTiles(tileStates) > 0) {
-        //may need to grab the above return value of pollTiles() in order to change. Might not.
+    else if ((changedTile = pollTiles(tileStates)) > 0) {
+        updateTile(changedTile);
         nextState = UPDATE_CKT;
     }
   
     return nextState;
 }
+
+/* Reads all of the magnets of a passed in board tile number, adding it to a queue to be interperetted
+ * and added to the board's logic circuit data structure */
+void updateTile(int tileNum) {
+    selectBoardTile(tileNum);
+}
+
 
 /* One-time configuration for I/O and various features */
 void init() {
@@ -198,6 +205,8 @@ void init() {
     initADC();
     initUSART();
     initTileCodes();
+
+    selectBoardTile(0);                         //Initialize board tile selection to 0 to start w/ known state
 }
 
 /*
