@@ -8,20 +8,30 @@
 #define TILES_H_
 
 typedef enum{M0, M1, M2} magnet;
-typedef enum{T0, T1, T2, T3, T4, T5, T6, T7} tile;
 typedef enum{N1, N2, S1, S2, U} magcode;
+typedef enum {EMPTY, AND, OR, XOR, NOT, SOURCE_A, SOURCE_B, SOURCE_C, SOURCE_D, PROBE_A,
+              PROBE_B, PROBE_C, PROBE_D, HORIZONTAL, VERTICAL, WIRE_9_12, WIRE_12_3,
+              JUMP, ULTRA_NODE, WIRE_9_12_3, WIRE_6_9_12, WIRE_9_12_DOUBLE, WIRE_12_3_DOUBLE,
+              UNDEFINED} tileType;
 
-typedef struct TileCodes {
+typedef struct TileState {
     magcode mag0;
     magcode mag1;
     magcode mag2;
-} TileCodes;
+
+    tileType type; // determined by the encoding of mag0-mag2
+    int orientation; //1 is normal orientation, -1 is flipped (upside-down)
+} TileState;
 
 /* Function Declarations */
-int pollTiles(TileCodes *tileStates);
+int pollTiles(TileState *tileStates);
 void selectMag(magnet m);
 void selectBoardTile(int tileNum);
 void selectModuleTile(int modTileNum);
 void selectModule(int moduleNum);
+void determineType(TileState *tile);
+
+/* Might not need - from testing phase */
+typedef enum{T0, T1, T2, T3, T4, T5, T6, T7} tile;
 
 #endif /* TILES_H_ */

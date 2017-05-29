@@ -23,9 +23,9 @@
 static int currSelTile = 0;
 
 /* Returns the first tile number detected as being changed with regard to the passed in,
- * current TileCodes structure, or a negative number if no changes detected. tileStates
+ * current TileState structure, or a negative number if no changes detected. tileStates
  * must be NUM_TILES in size (one structure for each tile on board */
-int pollTiles(TileCodes *tileStates) {
+int pollTiles(TileState *tileStates) {
     int returnTileNum = -1;
     selectMag(M2); //Magnet 2 is baseline detection magnet
 
@@ -110,4 +110,133 @@ void selectModuleTile(int modTileNum) {
 void selectModule(int moduleNum) {
     P3OUT &= ~MODULE_CTRL;
     P3OUT |= moduleNum;
+}
+
+/* Determines the type of the tile represented by the TileState structure pointed to by *tile, done through
+ * encoding of the mag0-mag2 fields */
+void determineType(TileState *tile) {
+    if (tile->mag2 == S1 || tile->mag2 == N1) { /* Gates & sources have a mag2 value of magnitude X1 */
+        switch (tile->mag0) {
+        case U:                             /* gates have mag0 value of U */
+            switch (tile->mag1) {
+            case N1:
+                tile->type = AND;
+                break;
+            case N2:
+                tile->type = OR;
+                break;
+            case S1:
+                tile->type = XOR;
+                break;
+            case S2:
+                tile->type = NOT;
+                break;
+            case U:
+                tile->type = UNDEFINED;
+                break;
+            }
+            break;
+        case N1:                            /* Sources have a mag0 value of N1 */
+            switch (tile->mag1) {
+            case N1:
+                tile->type = SOURCE_A;
+                break;
+            case N2:
+                tile->type = SOURCE_B;
+                break;
+            case S1:
+                tile->type = SOURCE_C;
+                break;
+            case S2:
+                tile->type = SOURCE_D;
+                break;
+            case U:
+                tile->type = UNDEFINED;
+                break;
+            }
+            break;
+        case S1:                            /* Probes have a mag0 value of S1 */
+            switch (tile->mag1) {
+            case N1:
+                tile->type = PROBE_A;
+                break;
+            case N2:
+                tile->type = PROBE_B;
+                break;
+            case S1:
+                tile->type = PROBE_C;
+                break;
+            case S2:
+                tile->type = PROBE_D;
+                break;
+            case U:
+                tile->type = UNDEFINED;
+                break;
+            }
+            break;
+        default:
+            tile->type = UNDEFINED;
+            break;
+        }
+    }
+    else if (tile->mag2 == S2 || tile->mag2 == N2) { /* Connectors have a mag2 value of magnitude X2 */
+        switch(tile->mag0) {
+        case U:
+            switch (tile->mag1) {
+            case N1:
+                tile->type = HORIZONTAL;
+                break;
+            case S1:
+                tile->type = VERTICAL;
+                break;
+            case N2:
+                tile->type = WIRE_9_12;
+                break;
+            case S2:
+                tile->type = WIRE_12_3;
+                break;
+            case U:
+                tile->type = UNDEFINED;
+                break;
+            }
+            break;
+        case N1:
+            switch (tile->mag1) {
+            case N1:
+                tile->type = JUMP;
+                break;
+            case S1:
+                tile->type = ULTRA_NODE;
+                break;
+            case N2:
+                tile->type = WIRE_9_12_3;
+                break;
+            default:
+                tile->type = UNDEFINED;
+                break;
+            }
+            break;
+        case S1:
+            switch (tile->mag1) {
+            case N1:
+                tile->type = WIRE_9_12_DOUBLE;
+                break;
+            case S1:
+                tile->type = WIRE_12_3_DOUBLE;
+                break;
+            case S2:
+                tile->type = WIRE_6_9_12;
+                break;
+            default:
+                tile->type = UNDEFINED;
+                break;
+            }
+            break;
+        default:
+            tile->type = UNDEFINED;
+            break;
+        }
+    }
+    else
+        tile->type = EMPTY;
 }

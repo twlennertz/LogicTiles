@@ -53,11 +53,13 @@ void init();
 
 void initADC();
 void initUSART();
-void initTileCodes();
-magcode readTileMag();
+void initTileState();
 
 state idlePoll();
 state cmdParse();
+
+void updateTile(unsigned int tileNum);
+magcode readTileMag();
 
 /* Quick and dirty defines from our specific applications */
 //Tile Bit Masks

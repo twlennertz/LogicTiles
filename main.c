@@ -22,13 +22,13 @@ static volatile uint16_t lastReadADCValue = 0;
 const char magList[3] = { MAG_0, MAG_1, MAG_2 };
 const char tileList[8] = { TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7 };
 char uBuff[51];
-static int buffIndex = 0;
+static unsigned int buffIndex = 0;
 
 /*Flags*/
 static volatile char rxPending = 0;
 
 /* The currently known states of the magnets for each tile on the board */
-static TileCodes tileStates[NUM_TILES];
+static TileState tileStates[NUM_TILES];
 
 /*
  * NOTE: Function mainly for Debugging Purposes
@@ -166,6 +166,7 @@ int main(void) {
  * found, dispatches to an updating of the circuit state. Otherwise defaults to this state for
  * next state. */
 state idlePoll() {
+    int changedTile;
 
     state nextState = IDLE_POLL;
 
@@ -186,10 +187,35 @@ state idlePoll() {
 
 /* Reads all of the magnets of a passed in board tile number, adding it to a queue to be interperetted
  * and added to the board's logic circuit data structure */
-void updateTile(int tileNum) {
+void updateTile(unsigned int tileNum) {
     selectBoardTile(tileNum);
-}
 
+    /* Need to determine the polarity of mag2 to know the orientation of the tile. North values values
+     * mean normal orientation, South values mean orientation is flipped backwards */
+    selectMag(M2);
+    tileStates[tileNum].mag2 = readTileMag();
+
+    if (tileStates[tileNum].mag2 == N1 || tileStates[tileNum].mag2 == N2) {
+        tileStates[tileNum].orientation = 1; // normal orientation
+
+        selectMag(M0);
+        tileStates[tileNum].mag0 = readTileMag();
+
+        selectMag(M1);
+        tileStates[tileNum].mag1 = readTileMag();
+    }
+    else if (tileStates[tileNum].mag2 == S1 || tileStates[tileNum].mag2 == S2) {
+        tileStates[tileNum].orientation = -1; //flipped orientation
+
+        selectMag(M1);
+        tileStates[tileNum].mag0 = readTileMag();
+
+        selectMag(M0);
+        tileStates[tileNum].mag1 = readTileMag();
+    }
+
+    determineType(&(tileStates[tileNum]));
+}
 
 /* One-time configuration for I/O and various features */
 void init() {
@@ -204,7 +230,7 @@ void init() {
 
     initADC();
     initUSART();
-    initTileCodes();
+    initTileState();
 
     selectBoardTile(0);                         //Initialize board tile selection to 0 to start w/ known state
 }
@@ -257,12 +283,13 @@ void initUSART() {
 }
 
 /* Initializes the known states of each tile to U (no magnet present) */
-void initTileCodes() {
-    int i;
+void initTileState() {
+    unsigned int i;
     for (i = 0; i < NUM_TILES; i++) {
         tileStates[i].mag0 = U;
         tileStates[i].mag1 = U;
         tileStates[i].mag2 = U;
+        tileStates[i].type = EMPTY;
     }
 }
 
