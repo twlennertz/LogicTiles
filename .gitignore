@@ -48,3 +48,16 @@ Temporary Items
 *.launch
 Debug/LogicTiles.map
 Debug/LogicTiles.map
+Debug/ccsObjs.opt
+*.opt
+Debug/ccsObjs.opt
+*.obj
+Debug/graph.d
+*.obj
+*.opt
+Debug/main.obj
+Debug/makefile
+*.mk
+Debug/LogicTiles_linkInfo.xml
+*.map
+Debug/LogicTiles.out

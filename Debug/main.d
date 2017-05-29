@@ -12,6 +12,7 @@ main.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdio.h
 main.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/linkage.h
 main.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdarg.h
 main.obj: ../tiles.h
+main.obj: ../graph.h
 main.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdint.h
 
 ../main.c: 
@@ -26,4 +27,5 @@ C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdio.h:
 C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/linkage.h: 
 C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdarg.h: 
 ../tiles.h: 
+../graph.h: 
 C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdint.h: 

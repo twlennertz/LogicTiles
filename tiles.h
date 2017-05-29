@@ -27,12 +27,12 @@ typedef struct TileState {
     tileType type;          // determined by the encoding of mag0-mag2
     int orientation;        // 1 is normal orientation, -1 is flipped (upside-down)
 
-    Node *leftNode;         // not all will be used for each tile type
-    Node *rightNode;
-    Node *topNode;
-    Node *bottomNode;
+    struct Node *leftNode;         // not all will be used for each tile type
+    struct Node *rightNode;
+    struct Node *topNode;
+    struct Node *bottomNode;
 
-    struct *TileState next; //for targets list of a Node
+    struct TileState *next; //for targets list of a Node
 } TileState;
 
 /* Function Declarations */
