@@ -18,6 +18,14 @@
 #define TILE_WIDTH (4)      //4 * MODULE_COLUMNS
 #define TILE_HEIGHT (2)     //2 * MODULE_ROWS
 
+/* The maximum possible nodes that could exist in a graph produced by this board.
+ * Alternatively, just calculate it and put that as a straight define. Can also
+ * set this value to something lower and malloc if the number of needed nodes exceeds
+ * what's pre-allocated. We have opted to avoid malloc altogether in this implementation */
+#define MAX_NODES ((10 * MODULE_COLUMNS * MODULE_ROWS) + \
+                   (2 * (MODULE_COLUMNS - 1) * MODULE_ROWS) + \
+                   (4 * (MODULE_ROWS - 1) * MODULE_COLUMNS))
+
 /* Hall Effect Sensor Value ranges for each magcode. May need to be adjusted for
  * the particular ADC and the application's distance of the magnet from each sensor */
 #define U_MIN 0//Min of the no-magnet-detected range
@@ -53,11 +61,13 @@ void init();
 
 void initADC();
 void initUSART();
-void initTileCodes();
-magcode readTileMag();
+void initTileState();
 
 state idlePoll();
 state cmdParse();
+
+void updateTile(unsigned int tileNum);
+magcode readTileMag();
 
 /* Quick and dirty defines from our specific applications */
 //Tile Bit Masks
