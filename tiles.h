@@ -42,6 +42,7 @@ void selectBoardTile(int tileNum);
 void selectModuleTile(int modTileNum);
 void selectModule(int moduleNum);
 void determineType(TileState *tile);
+int isActiveType(TileState *tile);
 
 /* Might not need - from testing phase */
 typedef enum{T0, T1, T2, T3, T4, T5, T6, T7} tile;

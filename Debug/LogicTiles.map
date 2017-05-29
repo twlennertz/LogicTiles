@@ -1,7 +1,7 @@
 ******************************************************************************
                   MSP430 Linker PC v16.9.1                     
 ******************************************************************************
->> Linked Sun May 28 19:23:55 2017
+>> Linked Mon May 29 14:31:04 2017
 
 OUTPUT FILE NAME:   <LogicTiles.out>
 ENTRY POINT SYMBOL: "_c_int00_noargs_noexit"  address: 0000406c
@@ -17,7 +17,7 @@ MEMORY CONFIGURATION
   INFOC                 00001880   00000080  00000000  00000080  RWIX
   INFOB                 00001900   00000080  00000000  00000080  RWIX
   INFOA                 00001980   00000080  00000000  00000080  RWIX
-  RAM                   00001c00   00001000  00000250  00000db0  RWIX
+  RAM                   00001c00   00001000  00000264  00000d9c  RWIX
   LEARAM                00002c00   00000ec8  00000000  00000ec8  RWIX
   LEASTACK              00003ac8   00000138  00000000  00000138  RWIX
   FRAM                  00004000   0000bf80  00000180  0000be00  RWIX
@@ -80,7 +80,7 @@ MEMORY CONFIGURATION
   INT53                 0000fffa   00000002  00000002  00000000  RWIX
   INT54                 0000fffc   00000002  00000002  00000000  RWIX
   RESET                 0000fffe   00000002  00000002  00000000  RWIX
-  FRAM2                 00010000   00034000  000008c0  00033740  RWIX
+  FRAM2                 00010000   00034000  00000ea2  0003315e  RWIX
 
 
 SECTION ALLOCATION MAP
@@ -88,16 +88,16 @@ SECTION ALLOCATION MAP
  output                                  attributes/
 section   page    origin      length       input sections
 --------  ----  ----------  ----------   ----------------
-.bss       0    00001c00    000001a4     UNINITIALIZED
+.bss       0    00001c00    000001b8     UNINITIALIZED
                   00001c00    000000f0     main.obj (.bss:tileStates)
-                  00001cf0    00000078     graph.obj (.bss:preallocNodes)
-                  00001d68    00000034     (.common:uBuff)
-                  00001d9c    00000008     graph.obj (.bss)
+                  00001cf0    0000008c     graph.obj (.bss:preallocNodes)
+                  00001d7c    00000034     (.common:uBuff)
+                  00001db0    00000008     graph.obj (.bss)
 
-.data      0    00001da4    0000000c     UNINITIALIZED
-                  00001da4    00000009     main.obj (.data)
-                  00001dad    00000001     --HOLE--
-                  00001dae    00000002     tiles.obj (.data)
+.data      0    00001db8    0000000c     UNINITIALIZED
+                  00001db8    00000009     main.obj (.data)
+                  00001dc1    00000001     --HOLE--
+                  00001dc2    00000002     tiles.obj (.data)
 
 .stack     0    00002b60    000000a0     UNINITIALIZED
                   00002b60    00000004     rts430x_lc_rd_eabi.lib : boot.obj (.stack)
@@ -278,50 +278,64 @@ SYSNMI     0    0000fffc    00000002
 .reset     0    0000fffe    00000002     
                   0000fffe    00000002     rts430x_lc_rd_eabi.lib : boot.obj (.reset)
 
-.text      0    00010000    000008c0     
-                  00010000    000001a0     tiles.obj (.text:determineType)
-                  000101a0    000000f6     main.obj (.text:updateTile)
-                  00010296    00000094     main.obj (.text:initTileState)
-                  0001032a    00000082     rts430x_lc_rd_eabi.lib : autoinit_wdt.obj (.text:_auto_init_hold_wdt)
-                  000103ac    0000007c     graph.obj (.text:initNodes)
-                  00010428    00000078     rts430x_lc_rd_eabi.lib : copy_decompress_lzss.obj (.text:decompress:lzss:__TI_decompress_lzss)
-                  000104a0    00000066                            : cpy_tbl.obj (.text:copy_in)
-                  00010506    00000064     main.obj (.text:main)
-                  0001056a    0000005e     tiles.obj (.text:selectBoardTile)
-                  000105c8    00000058     tiles.obj (.text:pollTiles)
-                  00010620    0000004e     main.obj (.text:idlePoll)
-                  0001066e    00000046     main.obj (.text:initUSART)
-                  000106b4    0000003a     main.obj (.text:init)
-                  000106ee    00000030     tiles.obj (.text:selectMag)
-                  0001071e    0000002c     rts430x_lc_rd_eabi.lib : div16s.obj (.text)
-                  0001074a    0000002a     main.obj (.text:initADC)
-                  00010774    0000002a     main.obj (.text:printCmds)
-                  0001079e    0000002a     main.obj (.text:readTileMag)
-                  000107c8    00000024     rts430x_lc_rd_eabi.lib : copy_zero_init.obj (.text:decompress:ZI:__TI_zero_init)
-                  000107ec    00000020     main.obj (.text:cmdParse)
-                  0001080c    0000001a     main.obj (.text:uPrint)
-                  00010826    00000018     rts430x_lc_rd_eabi.lib : mult16_f5hw.obj (.text)
-                  0001083e    00000016     main.obj (.text:reportError)
-                  00010854    00000016     rts430x_lc_rd_eabi.lib : div16u.obj (.text)
-                  0001086a    00000014                            : memcpy.obj (.text:memcpy)
-                  0001087e    00000012                            : copy_decompress_none.obj (.text:decompress:none:__TI_decompress_none)
-                  00010890    0000000e     tiles.obj (.text:selectModuleTile)
-                  0001089e    0000000c     tiles.obj (.text:selectModule)
-                  000108aa    0000000a     graph.obj (.text:insertTile)
-                  000108b4    00000006     rts430x_lc_rd_eabi.lib : exit.obj (.text:abort)
-                  000108ba    00000004                            : pre_init.obj (.text:_system_pre_init)
-                  000108be    00000002                            : startup.obj (.text:_system_post_cinit)
+.text      0    00010000    00000ea2     
+                  00010000    000002b0     graph.obj (.text:insertTile)
+                  000102b0    000001a0     tiles.obj (.text:determineType)
+                  00010450    000000f6     main.obj (.text:updateTile)
+                  00010546    000000d8     graph.obj (.text:removeTile)
+                  0001061e    00000094     main.obj (.text:initTileState)
+                  000106b2    00000082     rts430x_lc_rd_eabi.lib : autoinit_wdt.obj (.text:_auto_init_hold_wdt)
+                  00010734    0000007c     graph.obj (.text:initNodes)
+                  000107b0    00000078     rts430x_lc_rd_eabi.lib : copy_decompress_lzss.obj (.text:decompress:lzss:__TI_decompress_lzss)
+                  00010828    00000066                            : cpy_tbl.obj (.text:copy_in)
+                  0001088e    00000064     main.obj (.text:main)
+                  000108f2    0000005e     tiles.obj (.text:selectBoardTile)
+                  00010950    00000058     tiles.obj (.text:pollTiles)
+                  000109a8    0000004e     graph.obj (.text:bottomConfig)
+                  000109f6    0000004e     main.obj (.text:idlePoll)
+                  00010a44    0000004e     graph.obj (.text:leftConfig)
+                  00010a92    0000004e     graph.obj (.text:rightConfig)
+                  00010ae0    0000004e     graph.obj (.text:topConfig)
+                  00010b2e    00000046     main.obj (.text:initUSART)
+                  00010b74    0000003a     main.obj (.text:init)
+                  00010bae    00000030     tiles.obj (.text:selectMag)
+                  00010bde    0000002c     graph.obj (.text:addGATE)
+                  00010c0a    0000002c     rts430x_lc_rd_eabi.lib : div16s.obj (.text)
+                  00010c36    0000002a     graph.obj (.text:freeNode)
+                  00010c60    0000002a     main.obj (.text:initADC)
+                  00010c8a    0000002a     main.obj (.text:printCmds)
+                  00010cb4    0000002a     main.obj (.text:readTileMag)
+                  00010cde    00000026     graph.obj (.text:addVERTICAL)
+                  00010d04    00000024     rts430x_lc_rd_eabi.lib : copy_zero_init.obj (.text:decompress:ZI:__TI_zero_init)
+                  00010d28    00000022     graph.obj (.text:addHORIZONTAL)
+                  00010d4a    00000022     graph.obj (.text:addNOT)
+                  00010d6c    00000020     graph.obj (.text:addSOURCE)
+                  00010d8c    00000020     main.obj (.text:cmdParse)
+                  00010dac    0000001e     graph.obj (.text:addPROBE)
+                  00010dca    0000001a     main.obj (.text:uPrint)
+                  00010de4    00000018     tiles.obj (.text:isActiveType)
+                  00010dfc    00000018     rts430x_lc_rd_eabi.lib : mult16_f5hw.obj (.text)
+                  00010e14    00000016     graph.obj (.text:newNode)
+                  00010e2a    00000016     main.obj (.text:reportError)
+                  00010e40    00000016     rts430x_lc_rd_eabi.lib : div16u.obj (.text)
+                  00010e56    00000014                            : memcpy.obj (.text:memcpy)
+                  00010e6a    00000012                            : copy_decompress_none.obj (.text:decompress:none:__TI_decompress_none)
+                  00010e7c    0000000e     tiles.obj (.text:selectModuleTile)
+                  00010e8a    0000000c     tiles.obj (.text:selectModule)
+                  00010e96    00000006     rts430x_lc_rd_eabi.lib : exit.obj (.text:abort)
+                  00010e9c    00000004                            : pre_init.obj (.text:_system_pre_init)
+                  00010ea0    00000002                            : startup.obj (.text:_system_post_cinit)
 
 MODULE SUMMARY
 
        Module                     code   ro data   rw data
        ------                     ----   -------   -------
     .\
+       graph.obj                  1616   0         148    
        main.obj                   1036   182       301    
-       tiles.obj                  672    0         2      
-       graph.obj                  134    0         128    
+       tiles.obj                  696    0         2      
     +--+--------------------------+------+---------+---------+
-       Total:                     1842   182       431    
+       Total:                     3348   182       451    
                                                           
     C:\ti\ccsv7\tools\compiler\ti-cgt-msp430_16.9.1.LTS\lib\rts430x_lc_rd_eabi.lib
        autoinit_wdt.obj           130    0         0      
@@ -380,14 +394,14 @@ MODULE SUMMARY
        Stack:                     0      0         160    
        Linker Generated:          0      41        0      
     +--+--------------------------+------+---------+---------+
-       Grand Total:               2404   295       591    
+       Grand Total:               3910   295       611    
 
 
 LINKER GENERATED COPY TABLES
 
 __TI_cinit_table @ 00004170 records: 2, size/record: 8, table size: 16
-	.data: load addr=00004162, load size=00000007 bytes, run addr=00001da4, run size=0000000c bytes, compression=lzss
-	.bss: load addr=0000416a, load size=00000006 bytes, run addr=00001c00, run size=000001a4 bytes, compression=zero_init
+	.data: load addr=00004162, load size=00000007 bytes, run addr=00001db8, run size=0000000c bytes, compression=lzss
+	.bss: load addr=0000416a, load size=00000006 bytes, run addr=00001c00, run size=000001b8 bytes, compression=zero_init
 
 
 LINKER GENERATED HANDLER TABLE
@@ -664,7 +678,7 @@ address   name
 000004bc  BIN2BCD                 
 000004bd  BIN2BCD_H               
 000004bc  BIN2BCD_L               
-000108b4  C$$EXIT                 
+00010e96  C$$EXIT                 
 0000043e  CAPTIO0CTL              
 0000043f  CAPTIO0CTL_H            
 0000043e  CAPTIO0CTL_L            
@@ -1915,8 +1929,8 @@ UNDEFED   __TI_BINIT_Limit
 UNDEFED   __TI_INITARRAY_Base     
 UNDEFED   __TI_INITARRAY_Limit    
 0000409c  __TI_ISR_TRAP           
-00010428  __TI_decompress_lzss    
-0001087e  __TI_decompress_none    
+000107b0  __TI_decompress_lzss    
+00010e6a  __TI_decompress_none    
 0000ffb4  __TI_int18              
 0000ffb6  __TI_int19              
 0000ffb8  __TI_int20              
@@ -1957,47 +1971,61 @@ UNDEFED   __TI_INITARRAY_Limit
 ffffffff  __TI_pprof_out_hndl     
 ffffffff  __TI_prof_data_size     
 ffffffff  __TI_prof_data_start    
-000107c8  __TI_zero_init          
+00010d04  __TI_zero_init          
 ffffffff  __c_args__              
-0001071e  __mspabi_divi           
-00010854  __mspabi_divu           
-00010826  __mspabi_mpyi_f5hw      
-0001071e  __mspabi_remi           
-00010854  __mspabi_remu           
-0001032a  _auto_init_hold_wdt     
+00010c0a  __mspabi_divi           
+00010e40  __mspabi_divu           
+00010dfc  __mspabi_mpyi_f5hw      
+00010c0a  __mspabi_remi           
+00010e40  __mspabi_remu           
+000106b2  _auto_init_hold_wdt     
 0000406c  _c_int00_noargs_noexit  
 0000fffe  _reset_vector           
 00002b60  _stack                  
-000108be  _system_post_cinit      
-000108ba  _system_pre_init        
-000108b4  abort                   
-000107ec  cmdParse                
-000104a0  copy_in                 
-00010000  determineType           
+00010ea0  _system_post_cinit      
+00010e9c  _system_pre_init        
+00010e96  abort                   
+00010bde  addGATE                 
+00010d28  addHORIZONTAL           
+00010d4a  addNOT                  
+00010dac  addPROBE                
+00010d6c  addSOURCE               
+00010cde  addVERTICAL             
+000109a8  bottomConfig            
+00010d8c  cmdParse                
+00010828  copy_in                 
+000102b0  determineType           
 00004000  fram_ipe_end            
 00004000  fram_ipe_start          
 00004000  fram_rw_start           
 00004000  fram_rx_start           
-00010620  idlePoll                
-000106b4  init                    
-0001074a  initADC                 
-000103ac  initNodes               
-00010296  initTileState           
-0001066e  initUSART               
-000108aa  insertTile              
-00010506  main                    
-0001086a  memcpy                  
-000105c8  pollTiles               
-00010774  printCmds               
-0001079e  readTileMag             
-0001083e  reportError             
-0001056a  selectBoardTile         
-000106ee  selectMag               
-0001089e  selectModule            
-00010890  selectModuleTile        
-00001d68  uBuff                   
-0001080c  uPrint                  
-000101a0  updateTile              
+00010c36  freeNode                
+000109f6  idlePoll                
+00010b74  init                    
+00010c60  initADC                 
+00010734  initNodes               
+0001061e  initTileState           
+00010b2e  initUSART               
+00010000  insertTile              
+00010de4  isActiveType            
+00010a44  leftConfig              
+0001088e  main                    
+00010e56  memcpy                  
+00010e14  newNode                 
+00010950  pollTiles               
+00010c8a  printCmds               
+00010cb4  readTileMag             
+00010546  removeTile              
+00010e2a  reportError             
+00010a92  rightConfig             
+000108f2  selectBoardTile         
+00010bae  selectMag               
+00010e8a  selectModule            
+00010e7c  selectModuleTile        
+00010ae0  topConfig               
+00001d7c  uBuff                   
+00010dca  uPrint                  
+00010450  updateTile              
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
@@ -3504,7 +3532,7 @@ address   name
 00000afc  LEAIV                   
 00000afc  LEAIVL                  
 00000afe  LEAIVH                  
-00001d68  uBuff                   
+00001d7c  uBuff                   
 00002b60  _stack                  
 00002c00  __STACK_END             
 00004000  USCI_A0_ISR             
@@ -3557,41 +3585,55 @@ address   name
 0000fffa  __TI_int53              
 0000fffc  __TI_int54              
 0000fffe  _reset_vector           
-00010000  determineType           
-000101a0  updateTile              
-00010296  initTileState           
-0001032a  _auto_init_hold_wdt     
-000103ac  initNodes               
-00010428  __TI_decompress_lzss    
-000104a0  copy_in                 
-00010506  main                    
-0001056a  selectBoardTile         
-000105c8  pollTiles               
-00010620  idlePoll                
-0001066e  initUSART               
-000106b4  init                    
-000106ee  selectMag               
-0001071e  __mspabi_divi           
-0001071e  __mspabi_remi           
-0001074a  initADC                 
-00010774  printCmds               
-0001079e  readTileMag             
-000107c8  __TI_zero_init          
-000107ec  cmdParse                
-0001080c  uPrint                  
-00010826  __mspabi_mpyi_f5hw      
-0001083e  reportError             
-00010854  __mspabi_divu           
-00010854  __mspabi_remu           
-0001086a  memcpy                  
-0001087e  __TI_decompress_none    
-00010890  selectModuleTile        
-0001089e  selectModule            
-000108aa  insertTile              
-000108b4  C$$EXIT                 
-000108b4  abort                   
-000108ba  _system_pre_init        
-000108be  _system_post_cinit      
+00010000  insertTile              
+000102b0  determineType           
+00010450  updateTile              
+00010546  removeTile              
+0001061e  initTileState           
+000106b2  _auto_init_hold_wdt     
+00010734  initNodes               
+000107b0  __TI_decompress_lzss    
+00010828  copy_in                 
+0001088e  main                    
+000108f2  selectBoardTile         
+00010950  pollTiles               
+000109a8  bottomConfig            
+000109f6  idlePoll                
+00010a44  leftConfig              
+00010a92  rightConfig             
+00010ae0  topConfig               
+00010b2e  initUSART               
+00010b74  init                    
+00010bae  selectMag               
+00010bde  addGATE                 
+00010c0a  __mspabi_divi           
+00010c0a  __mspabi_remi           
+00010c36  freeNode                
+00010c60  initADC                 
+00010c8a  printCmds               
+00010cb4  readTileMag             
+00010cde  addVERTICAL             
+00010d04  __TI_zero_init          
+00010d28  addHORIZONTAL           
+00010d4a  addNOT                  
+00010d6c  addSOURCE               
+00010d8c  cmdParse                
+00010dac  addPROBE                
+00010dca  uPrint                  
+00010de4  isActiveType            
+00010dfc  __mspabi_mpyi_f5hw      
+00010e14  newNode                 
+00010e2a  reportError             
+00010e40  __mspabi_divu           
+00010e40  __mspabi_remu           
+00010e56  memcpy                  
+00010e6a  __TI_decompress_none    
+00010e7c  selectModuleTile        
+00010e8a  selectModule            
+00010e96  C$$EXIT                 
+00010e96  abort                   
+00010e9c  _system_pre_init        
+00010ea0  _system_post_cinit      
 ffffffff  __TI_pprof_out_hndl     
 ffffffff  __TI_prof_data_size     
 ffffffff  __TI_prof_data_start    
@@ -3601,4 +3643,4 @@ UNDEFED   __TI_BINIT_Limit
 UNDEFED   __TI_INITARRAY_Base     
 UNDEFED   __TI_INITARRAY_Limit    
 
-[1596 symbols]
+[1610 symbols]
