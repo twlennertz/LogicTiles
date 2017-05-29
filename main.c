@@ -9,6 +9,7 @@
 #include <msp430.h>
 #include "main.h"
 #include "tiles.h"
+#include "graph.h"
 #include <stdint.h>
 
 /*Current States*/
@@ -178,15 +179,22 @@ state idlePoll() {
         nextState = CMD_PARSE;
     }
     else if ((changedTile = pollTiles(tileStates)) > 0) {
-        updateTile(changedTile);
+        if (tileStates[changedTile].mag2 == U) {
+            ; //Call a remove-from-graph function here
+        }
+        else {
+            updateTile(changedTile);
+            insertTile(changedTile, tileStates);
+        }
+
         nextState = UPDATE_CKT;
     }
   
     return nextState;
 }
 
-/* Reads all of the magnets of a passed in board tile number, adding it to a queue to be interperetted
- * and added to the board's logic circuit data structure */
+/* Reads all of the magnets of a passed in board tile number, determining its type
+ * and inserting it into the graph structure representing the logic circuit */
 void updateTile(unsigned int tileNum) {
     selectBoardTile(tileNum);
 
@@ -231,6 +239,7 @@ void init() {
     initADC();
     initUSART();
     initTileState();
+    initNodes();
 
     selectBoardTile(0);                         //Initialize board tile selection to 0 to start w/ known state
 }
@@ -290,6 +299,12 @@ void initTileState() {
         tileStates[i].mag1 = U;
         tileStates[i].mag2 = U;
         tileStates[i].type = EMPTY;
+        tileStates[i].orientation = 1;
+
+        tileStates[i].leftNode = 0;
+        tileStates[i].rightNode = 0;
+        tileStates[i].topNode = 0;
+        tileStates[i].bottomNode = 0;
     }
 }
 

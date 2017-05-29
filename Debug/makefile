@@ -10,6 +10,7 @@ GEN_OPTS__FLAG :=
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
+"./graph.obj" \
 "./main.obj" \
 "./tiles.obj" \
 "../lnk_msp430fr5994.cmd" \
@@ -155,8 +156,8 @@ LogicTiles.hex: $(EXE_OUTPUTS)
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "main.obj" "tiles.obj" 
-	-$(RM) "main.d" "tiles.d" 
+	-$(RM) "graph.obj" "main.obj" "tiles.obj" 
+	-$(RM) "graph.d" "main.d" "tiles.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
