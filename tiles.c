@@ -240,3 +240,14 @@ void determineType(TileState *tile) {
     else
         tile->type = EMPTY;
 }
+
+int isActiveType(TileState *tile) {
+
+    int isActive = 0;
+
+    if ((tile->mag2 == S1 || tile->mag2 == N1) && ((tile->mag0 == U) || (tile->mag0 == N1))) {
+        isActive = 1;
+    }
+
+    return isActive;
+}
