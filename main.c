@@ -12,69 +12,18 @@
 #include "graph.h"
 #include <stdint.h>
 
-/*Current States*/
-static tile curTile = T0;
-static magnet curMagnet = M0;
-
 /* Holds last read value of ADC (from readTileMag()) */
 static volatile uint16_t lastReadADCValue = 0;
 
-/*Major Data structures*/
-const char magList[3] = { MAG_0, MAG_1, MAG_2 };
-const char tileList[8] = { TILE_0, TILE_1, TILE_2, TILE_3, TILE_4, TILE_5, TILE_6, TILE_7 };
+/*Serial data structures */
 char uBuff[51];
-static unsigned int buffIndex = 0;
+static volatile unsigned int buffIndex = 0;
 
 /*Flags*/
 static volatile char rxPending = 0;
 
-/* The currently known states of the magnets for each tile on the board */
+/* The currently known states of the tiles on the board */
 static TileState tileStates[NUM_TILES];
-
-/*
- * NOTE: Function mainly for Debugging Purposes
- *
- * Cycles all magnets for each tile
- */
-void cycleAllMag() {
-
-    if (curTile == T7) {
-        curTile = T0;
-        if (curMagnet == M2) {
-            curMagnet = M0;
-        }
-        else {
-            curMagnet++;
-        }
-        P2OUT = magList[curMagnet];
-    }
-    else {
-        curTile++;
-    }
-
-    P4OUT = tileList[curTile];
-}
-
-/*
- * Cycles through all tiles, and performs
- * and A-D conversion on Magnet 1 (Detector Magnet).
- * The appropriate IRQ will determine if a new tile is
- * detected.
- */
-void findNewTile() {
-
-    P2OUT = M1;
-
-    if (curTile == T7) {
-        curTile = T0;
-    }
-    else {
-        curTile++;
-    }
-
-    P4OUT = tileList[curTile];
-
-}
 
 /*
  * Given the current layout of tiles on the board, this
@@ -84,43 +33,8 @@ void constructCircuit() {
 
 }
 
-/*
- * Adds a new tile to the list of running tiles.
- * The other sensors of the tile are to be read, resulting
- * into a 3 byte code that identifies a unique tile.
- */
-void addTile(int tile) {
-
-
-}
-
-void uPrint(char * message) {
-
-    while(*message) {
-        while(!(UCA0IFG&UCTXIFG));
-        UCA0TXBUF = *message;
-        message++;
-    }
-}
-
-void printCmds() {
-
-    uPrint("\r\nCommands:");
-    uPrint("\r\n1: Print Commands");
-    uPrint("\r\n2: Change Inputs");
-    uPrint("\r\n3: I dunno, something else?");
-    uPrint("\n");
-}
-
 int main(void) {
     init();
-
-
-    /* Testing code */
-    //P1OUT &= ~0x02;
-    P1OUT |= 0x02 | BIT0;
-    P4OUT = TILE_0;                             //Select Tile 0
-    P2OUT = MAG_2;                              //Select Mag 0
 
     uPrint("\r\nLogic Tiles Version 0.1");
     printCmds();
@@ -191,6 +105,78 @@ state idlePoll() {
     }
   
     return nextState;
+}
+
+state cmdParse() {
+
+    //char buf[5];
+
+    uPrint("\n\rI Read: ");
+    uPrint(uBuff);
+    uPrint("\r\n>:");
+
+    uBuff[0] = '\0';
+
+    return IDLE_POLL;
+}
+
+void uPrint(char * message) {
+
+    while(*message) {
+        while(!(UCA0IFG&UCTXIFG));
+        UCA0TXBUF = *message;
+        message++;
+    }
+}
+
+void printCmds() {
+
+    uPrint("\r\nCommands:");
+    uPrint("\r\n1: Print Commands");
+    uPrint("\r\n2: Change Inputs");
+    uPrint("\r\n3: I dunno, something else?");
+    uPrint("\n");
+}
+
+void reportError(int errorCode) {
+
+    switch (errorCode) {
+
+        case BAD_CMD:
+            uPrint("\r\nERROR: INPUT ERROR");
+            uPrint("\r\n>:");
+            break;
+
+        default:
+            break;
+
+    }
+}
+
+/* Blocking function that initializes and waits out an ADC read and returns the magnet
+ * encoding for the currently mux-selected hall-effect sensor (selected with selectBoardTile() and selectMag())
+ * in tiles.c */
+magcode readTileMag() {
+    magcode returnCode = U;
+
+    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
+    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
+    __no_operation();                       // For debugger
+
+    if (lastReadADCValue < U_MIN) {
+        if (lastReadADCValue < S2_MIN)
+            returnCode = S1;
+        else
+            returnCode = S2;
+    }
+    else if (lastReadADCValue > U_MAX) {
+        if (lastReadADCValue > N2_MAX)
+            returnCode = N1;
+        else
+            returnCode = N2;
+    }
+
+    return returnCode;
 }
 
 /* Reads all of the magnets of a passed in board tile number, determining its type
@@ -306,60 +292,6 @@ void initTileState() {
         tileStates[i].topNode = 0;
         tileStates[i].bottomNode = 0;
     }
-}
-
-state cmdParse() {
-
-    //char buf[5];
-
-    uPrint("\n\rI Read: ");
-    uPrint(uBuff);
-    uPrint("\r\n>:");
-
-    uBuff[0] = '\0';
-
-    return IDLE_POLL;
-}
-
-void reportError(int errorCode) {
-
-    switch (errorCode) {
-
-        case BAD_CMD:
-            uPrint("\r\nERROR: INPUT ERROR");
-            uPrint("\r\n>:");
-            break;
-
-        default:
-            break;
-        
-    }
-}
-
-/* Blocking function that initializes and waits out an ADC read and returns the magnet
- * encoding for the currently mux-selected hall-effect sensor (selected with selectBoardTile() and selectMag())
- * in tiles.c */
-magcode readTileMag() {
-    magcode returnCode = U;
-
-    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
-    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
-    __no_operation();                       // For debugger
-
-    if (lastReadADCValue < U_MIN) {
-        if (lastReadADCValue < S1_MIN)
-            returnCode = S2;
-        else
-            returnCode = S1;
-    }
-    else if (lastReadADCValue > U_MAX) {
-        if (lastReadADCValue > N1_MAX)
-            returnCode = N2;
-        else
-            returnCode = N1;
-    }
-
-    return returnCode;
 }
 
 /*

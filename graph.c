@@ -12,7 +12,9 @@ static Node *freeListTail;
 
 void insertTile(unsigned int changedTile, TileState *tileStates) {
     TileState *toInsert = tileStates + changedTile;
+
     TileState *leftTile, *rightTile, *topTile, *bottomTile;
+    leftTile = rightTile = topTile = bottomTile = 0; //initialize neighbors to null
 
     int leftIndex, rightIndex, bottomIndex, topIndex, horizontalCheck, verticalCheck;
 
@@ -62,9 +64,8 @@ void insertTile(unsigned int changedTile, TileState *tileStates) {
     }
 
     /*If it's not on a particular edge, get the neighbor tile*/
-    if (leftIndex != -1) {
+    if (leftIndex != -1)
         leftTile = tileStates + leftIndex;
-    }
     if (rightIndex != -1) {
         rightTile = tileStates + rightIndex;
     }
@@ -74,7 +75,6 @@ void insertTile(unsigned int changedTile, TileState *tileStates) {
     if (bottomIndex != -1) {
         bottomTile = tileStates + bottomIndex;
     }
-
 
     /* Create/assign nodes to the toInsert tile based on what its type is */
     switch (toInsert->type) {
