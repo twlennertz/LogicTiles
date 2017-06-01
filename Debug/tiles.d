@@ -11,6 +11,7 @@ tiles.obj: ../main.h
 tiles.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdio.h
 tiles.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/linkage.h
 tiles.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdarg.h
+tiles.obj: C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdint.h
 tiles.obj: ../tiles.h
 
 ../tiles.c: 
@@ -24,4 +25,5 @@ C:/ti/ccsv7/ccs_base/msp430/include/legacy.h:
 C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdio.h: 
 C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/linkage.h: 
 C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdarg.h: 
+C:/ti/ccsv7/tools/compiler/ti-cgt-msp430_16.9.1.LTS/include/stdint.h: 
 ../tiles.h: 

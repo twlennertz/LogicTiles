@@ -94,6 +94,14 @@ void addTile(int tile) {
 
 }
 
+void printADC(uint16_t value) {
+
+    char buffer[4];
+    sprintf(buffer, "%x", value);
+
+    uPrint(buffer);
+}
+
 void uPrint(char * message) {
 
     while(*message) {
@@ -102,6 +110,7 @@ void uPrint(char * message) {
         message++;
     }
 }
+
 
 void printCmds() {
 
@@ -345,6 +354,10 @@ magcode readTileMag() {
     ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
     __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
     __no_operation();                       // For debugger
+
+    uPrint("ADC VAL: ");
+    printADC(lastReadADCValue);
+    uPrint("\n\r");
 
     if (lastReadADCValue < U_MIN) {
         if (lastReadADCValue < S1_MIN)
