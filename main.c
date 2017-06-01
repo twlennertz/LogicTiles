@@ -33,6 +33,24 @@ void constructCircuit() {
 
 }
 
+/*
+ * Adds a new tile to the list of running tiles.
+ * The other sensors of the tile are to be read, resulting
+ * into a 3 byte code that identifies a unique tile.
+ */
+void addTile(int tile) {
+
+
+}
+
+void printADC(uint16_t value) {
+
+    char buffer[4];
+    sprintf(buffer, "%x", value);
+
+    uPrint(buffer);
+}
+
 int main(void) {
     init();
 
@@ -153,32 +171,6 @@ void reportError(int errorCode) {
     }
 }
 
-/* Blocking function that initializes and waits out an ADC read and returns the magnet
- * encoding for the currently mux-selected hall-effect sensor (selected with selectBoardTile() and selectMag())
- * in tiles.c */
-magcode readTileMag() {
-    magcode returnCode = U;
-
-    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
-    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
-    __no_operation();                       // For debugger
-
-    if (lastReadADCValue < U_MIN) {
-        if (lastReadADCValue < S2_MIN)
-            returnCode = S1;
-        else
-            returnCode = S2;
-    }
-    else if (lastReadADCValue > U_MAX) {
-        if (lastReadADCValue > N2_MAX)
-            returnCode = N1;
-        else
-            returnCode = N2;
-    }
-
-    return returnCode;
-}
-
 /* Reads all of the magnets of a passed in board tile number, determining its type
  * and inserting it into the graph structure representing the logic circuit */
 void updateTile(unsigned int tileNum) {
@@ -292,6 +284,36 @@ void initTileState() {
         tileStates[i].topNode = 0;
         tileStates[i].bottomNode = 0;
     }
+}
+
+/* Blocking function that initializes and waits out an ADC read and returns the magnet
+ * encoding for the currently mux-selected hall-effect sensor (selected with selectBoardTile() and selectMag())
+ * in tiles.c */
+magcode readTileMag() {
+    magcode returnCode = U;
+
+    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
+    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
+    __no_operation();                       // For debugger
+
+    uPrint("ADC VAL: ");
+    printADC(lastReadADCValue);
+    uPrint("\n\r");
+
+    if (lastReadADCValue < U_MIN) {
+        if (lastReadADCValue < S2_MIN)
+            returnCode = S1;
+        else
+            returnCode = S2;
+    }
+    else if (lastReadADCValue > U_MAX) {
+        if (lastReadADCValue > N2_MAX)
+            returnCode = N1;
+        else
+            returnCode = N2;
+    }
+
+    return returnCode;
 }
 
 /*
