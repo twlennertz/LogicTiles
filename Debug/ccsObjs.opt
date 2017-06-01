@@ -1,1 +1,1 @@
-"./graph.obj" "./main.obj" "./tiles.obj" "../lnk_msp430fr5994.cmd" -llibmath.a -llibc.a 
+"./graph.obj" "./main.obj" "./tiles.obj" "../lnk_msp430fr5994.cmd" -llibmpu_init.a -llibmath.a -llibc.a 

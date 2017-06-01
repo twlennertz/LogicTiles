@@ -6,6 +6,7 @@
 #define MAIN_H
 
 #include <stdio.h>
+#include <stdint.h>
 #include "tiles.h"
 
 /* Defines for the number and layout of modules. Must be in a rectangular layout
