@@ -110,14 +110,50 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
             retVal = INDETERMINATE;
             break;
         case HORIZONTAL:
+            if (currNode == currTile->rightNode)
+                retVal = getNodeValue(currTile->leftNode,
+                                      getOtherTile(currTile->leftNode, currTile));
+            else
+                retVal = getNodeValue(currTile->rightNode,
+                                      getOtherTile(currTile->rightNode, currTile));
             break;
         case VERTICAL:
+            if (currNode == currTile->topNode)
+                retVal = getNodeValue(currTile->bottomNode,
+                                      getOtherTile(currTile->bottomNode, currTile));
+            else
+                retVal = getNodeValue(currTile->topNode,
+                                      getOtherTile(currTile->topNode, currTile));
             break;
         case WIRE_9_12:
+            if (currNode == currTile->rightNode)
+                retVal = getNodeValue(currTile->bottomNode,
+                                      getOtherTile(currTile->bottomNode, currTile));
+            else
+                retVal = getNodeValue(currTile->rightNode,
+                                      getOtherTile(currTile->rightNode, currTile));
             break;
         case WIRE_12_3:
+            if (currNode == currTile->bottomNode)
+                retVal = getNodeValue(currTile->leftNode,
+                                      getOtherTile(currTile->leftNode, currTile));
+            else
+                retVal = getNodeValue(currTile->bottomNode,
+                                      getOtherTile(currTile->bottomNode, currTile));
             break;
         case JUMP:
+            if (currNode == currTile->rightNode)
+                retVal = getNodeValue(currTile->leftNode,
+                                      getOtherTile(currTile->leftNode, currTile));
+            else if (currNode == currTile->leftNode)
+                retVal = getNodeValue(currTile->rightNode,
+                                      getOtherTile(currTile->rightNode, currTile));
+            else if (currNode == currTile->topNode)
+                retVal = getNodeValue(currTile->bottomNode,
+                                      getOtherTile(currTile->bottomNode, currTile));
+            else
+                retVal = getNodeValue(currTile->topNode,
+                                      getOtherTile(currTile->topNode, currTile));
             break;
         case ULTRA_NODE:
             break;
@@ -126,8 +162,32 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
         case WIRE_6_9_12:
             break;
         case WIRE_9_12_DOUBLE:
+            if (currNode == currTile->rightNode)
+                retVal = getNodeValue(currTile->bottomNode,
+                                      getOtherTile(currTile->bottomNode, currTile));
+            else if (currNode == currTile->bottomNode)
+                retVal = getNodeValue(currTile->rightNode,
+                                      getOtherTile(currTile->rightNode, currTile));
+            else if (currNode == currTile->topNode)
+                retVal = getNodeValue(currTile->leftNode,
+                                      getOtherTile(currTile->leftNode, currTile));
+            else
+                retVal = getNodeValue(currTile->topNode,
+                                      getOtherTile(currTile->topNode, currTile));
             break;
         case WIRE_12_3_DOUBLE:
+            if (currNode == currTile->bottomNode)
+                retVal = getNodeValue(currTile->leftNode,
+                                      getOtherTile(currTile->leftNode, currTile));
+            else if (currNode == currTile->leftNode)
+                retVal = getNodeValue(currTile->bottomNode,
+                                      getOtherTile(currTile->bottomNode, currTile));
+            else if (currNode == currTile->topNode)
+                retVal = getNodeValue(currTile->rightNode,
+                                      getOtherTile(currTile->rightNode, currTile));
+            else
+                retVal = getNodeValue(currTile->topNode,
+                                      getOtherTile(currTile->topNode, currTile));
             break;
         default:
             //might want to signal an error here
