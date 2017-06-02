@@ -3,16 +3,12 @@
 
 typedef enum {active, passive, undecided} nodeType;
 
+typedef enum {ZERO, ONE, INDETERMINATE} digiVal;
+
 typedef struct Node {
-    /*
-     * sourceTile and targetTile are the two different tiles that the node is
-     * bridging. While the naming may suggest that one has a priority/precedence over the other,
-     * it is simply a naming convention. SourceTile is typically either the leftmost or topmost tile
-     * (as this will typically be read left->right or top->bottom) and targetTile is typically the rightmost or
-     * bottommost. Again, this does NOT denote signal propagation.
-     */
-    TileState *sourceTile;
-    TileState *targetTile;
+    /* Two tiles the node is bridging */
+    TileState *tile1;
+    TileState *tile2;
 
     /*
      * States what type of node it is:

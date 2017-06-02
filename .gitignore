@@ -67,3 +67,4 @@ Debug/LogicTiles_linkInfo.xml
 *.obj
 Debug/subdir_rules.mk
 Debug/tiles.obj
+.settings/org.eclipse.core.resources.prefs

@@ -72,6 +72,7 @@ state cmdParse();
 
 void uPrint(char * message);
 void printCmds();
+void printADC(uint16_t value);
 
 void updateTile(unsigned int tileNum);
 magcode readTileMag();

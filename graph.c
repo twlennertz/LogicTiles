@@ -10,6 +10,62 @@ static Node preallocNodes[MAX_NODES];
 static Node *freeListHead;
 static Node *freeListTail;
 
+digiVal getNodeValue(Node *currNode, TileState *currTile) {
+    digiVal retVal = INDETERMINATE;
+
+    switch (currTile->type) {
+    case EMPTY:
+        break;
+    case AND:
+        break;
+    case OR:
+        break;
+    case XOR:
+        break;
+    case NOT:
+        break;
+    case SOURCE_A:
+        break;
+    case SOURCE_B:
+        break;
+    case SOURCE_C:
+        break;
+    case SOURCE_D:
+        break;
+    case PROBE_A:
+        break;
+    case PROBE_B:
+        break;
+    case PROBE_C:
+        break;
+    case PROBE_D:
+        break;
+    case HORIZONTAL:
+        break;
+    case VERTICAL:
+        break;
+    case WIRE_9_12:
+        break;
+    case WIRE_12_3:
+        break;
+    case JUMP:
+        break;
+    case ULTRA_NODE:
+        break;
+    case WIRE_9_12_3:
+        break;
+    case WIRE_6_9_12:
+        break;
+    case WIRE_9_12_DOUBLE:
+        break;
+    case WIRE_12_3_DOUBLE:
+        break;
+    default:
+        //might want to signal an error here
+        break;
+    }
+}
+
 void insertTile(unsigned int changedTile, TileState *tileStates) {
     TileState *toInsert = tileStates + changedTile;
 
@@ -19,10 +75,8 @@ void insertTile(unsigned int changedTile, TileState *tileStates) {
     int leftIndex, rightIndex, bottomIndex, topIndex, horizontalCheck, verticalCheck;
 
     /* Calculate the tile numbers of the immediate neighbors of the tile in question.
-     * No neighbor (due to edge of board) is denoted with -1. This is where the flipped
-     * orientation is taken into consideration, with the left/right and top/bottom
-     * neighbors being swapped if the orientation is -1. No further orientation consideration
-     * will be needed after this step. */
+     * No neighbor (due to edge of board) is denoted with -1. Orientation is considered,
+     *  with the left/right and top/bottom neighbors being swapped if the orientation is -1. */
     horizontalCheck = changedTile % TILE_WIDTH;
     verticalCheck = changedTile % TILE_HEIGHT;
 
@@ -124,28 +178,28 @@ void insertTile(unsigned int changedTile, TileState *tileStates) {
         addVERTICAL(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case WIRE_9_12:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addWIRE_9_12(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case WIRE_12_3:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addWIRE_12_3(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case JUMP:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addJUMP(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case ULTRA_NODE:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addULTRA_NODE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case WIRE_9_12_3:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addWIRE_9_12_3(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case WIRE_6_9_12:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addWIRE_6_9_12(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case WIRE_9_12_DOUBLE:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addWIRE_9_12_DOUBLE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case WIRE_12_3_DOUBLE:
-        addHORIZONTAL(toInsert, leftTile, rightTile, topTile, bottomTile);
+        addWIRE_12_3_DOUBLE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     default:
         //might want to signal an error here
@@ -163,10 +217,14 @@ void insertTile(unsigned int changedTile, TileState *tileStates) {
  * the node will be freed.
  */
 void removeTile(TileState *toRemove, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
-
     if (toRemove->rightNode != NULL) {
 
-        toRemove->rightNode->sourceTile = NULL;
+        if (toRemove == toRemove->rightNode->tile1) {   //is tile1 of node
+            toRemove->rightNode->tile1 = NULL;
+        }
+        else {                                          //is tile2 of node
+            toRemove->rightNode->tile2 = NULL;
+        }
 
         if (toRemove->rightNode->currentType == undecided) {
             freeNode(toRemove->rightNode);
@@ -176,12 +234,16 @@ void removeTile(TileState *toRemove, TileState *leftTile, TileState *rightTile, 
         }
 
         toRemove->rightNode = NULL;
-
     }
 
     if (toRemove->leftNode != NULL) {
 
-        toRemove->leftNode->targetTile = NULL;
+        if (toRemove == toRemove->leftNode->tile1) {    //is tile1 of node
+            toRemove->leftNode->tile1 = NULL;
+        }
+        else {                                          //is tile2 of node
+            toRemove->leftNode->tile2 = NULL;
+        }
 
         if (toRemove->leftNode->currentType == undecided) {
             freeNode(toRemove->leftNode);
@@ -191,12 +253,37 @@ void removeTile(TileState *toRemove, TileState *leftTile, TileState *rightTile, 
         }
 
         toRemove->leftNode = NULL;
+    }
 
+    if (toRemove->topNode != NULL) {
+
+        if (toRemove == toRemove->topNode->tile1) {     //is tile1 of node
+            toRemove->topNode->tile1 = NULL;
+        }
+        else {                                          //is tile2 of node
+            toRemove->topNode->tile2 = NULL;
+        }
+
+
+        if (toRemove->topNode->currentType == undecided) {
+            freeNode(toRemove->topNode);
+        }
+        else {
+            toRemove->topNode->currentType = undecided;
+        }
+
+        toRemove->topNode = NULL;
     }
 
     if (toRemove->bottomNode != NULL) {
 
-        toRemove->bottomNode->sourceTile = NULL;
+        if (toRemove == toRemove->bottomNode->tile1) {   //is tile1 of node
+            toRemove->bottomNode->tile1 = NULL;
+        }
+        else {                                           //is tile2 of node
+            toRemove->bottomNode->tile2 = NULL;
+        }
+
 
         if (toRemove->bottomNode->currentType == undecided) {
             freeNode(toRemove->bottomNode);
@@ -207,32 +294,18 @@ void removeTile(TileState *toRemove, TileState *leftTile, TileState *rightTile, 
 
         toRemove->bottomNode = NULL;
     }
-
-    if (toRemove->topNode != NULL) {
-
-        toRemove->topNode->targetTile = NULL;
-
-        if (toRemove->topNode->currentType == undecided) {
-            freeNode(toRemove->topNode);
-        }
-        else {
-            toRemove->topNode->currentType = undecided;
-        }
-
-        toRemove->topNode = NULL;
-
-    }
 }
 
 /*
  * Configures nodes for a 3 input, 1 output GATE tile
  */
 void addGATE(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
-    topConfig(toInsert, topTile);
-    bottomConfig(toInsert, bottomTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
+    topConfig(toInsert, notFlipped ? topTile : bottomTile);
+    bottomConfig(toInsert, notFlipped ? bottomTile : topTile);
 }
 
 
@@ -240,9 +313,10 @@ void addGATE(TileState *toInsert, TileState *leftTile, TileState *rightTile, Til
  * Configures nodes for a NOT gate tile
  */
 void addNOT(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
 
     toInsert->topNode = NULL;
     toInsert->bottomNode = NULL;
@@ -252,21 +326,29 @@ void addNOT(TileState *toInsert, TileState *leftTile, TileState *rightTile, Tile
  * Configures nodes for SOURCE tiles
  */
 void addSOURCE(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    rightConfig(toInsert, rightTile);
+    if (notFlipped)
+        rightConfig(toInsert, rightTile);
+    else
+        leftConfig(toInsert, rightTile);
 
     toInsert->leftNode = NULL;
     toInsert->topNode = NULL;
     toInsert->bottomNode = NULL;
-
 }
 
 /*
  * Configures nodes for PROBE tiles
  */
 void addPROBE(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
+    if (notFlipped)
+        leftConfig(toInsert, leftTile);
+    else
+        rightConfig(toInsert, leftTile);
+
 
     toInsert->topNode = NULL;
     toInsert->rightNode = NULL;
@@ -277,9 +359,10 @@ void addPROBE(TileState *toInsert, TileState *leftTile, TileState *rightTile, Ti
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addHORIZONTAL(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
 
     toInsert->topNode = NULL;
     toInsert->bottomNode = NULL;
@@ -289,9 +372,10 @@ void addHORIZONTAL(TileState *toInsert, TileState *leftTile, TileState *rightTil
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addVERTICAL(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    topConfig(toInsert, topTile);
-    bottomConfig(toInsert, bottomTile);
+    topConfig(toInsert, notFlipped ? topTile : bottomTile);
+    bottomConfig(toInsert, notFlipped ? bottomTile : topTile);
 
     toInsert->leftNode = NULL;
     toInsert->rightNode = NULL;
@@ -301,69 +385,78 @@ void addVERTICAL(TileState *toInsert, TileState *leftTile, TileState *rightTile,
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_9_12(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    rightConfig(toInsert, leftTile);
+    bottomConfig(toInsert, topTile);
 
-    leftConfig(toInsert, leftTile);
-    topConfig(toInsert, topTile);
-
-    toInsert->bottomNode = NULL;
-    toInsert->rightNode = NULL;
-
+    toInsert->topNode = NULL;
+    toInsert->leftNode = NULL;
 }
 
 /*
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_12_3(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    bottomConfig(toInsert, topTile);
+    leftConfig(toInsert, rightTile);
 
-    topConfig(toInsert, topTile);
-    rightConfig(toInsert, rightTile);
-
-    toInsert->leftNode = NULL;
-    toInsert->bottomNode = NULL;
+    toInsert->rightNode = NULL;
+    toInsert->topNode = NULL;
 }
 
 /*
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addJUMP(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
-    topConfig(toInsert, topTile);
-    bottomConfig(toInsert, bottomTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
+    topConfig(toInsert, notFlipped ? topTile : bottomTile);
+    bottomConfig(toInsert, notFlipped ? bottomTile : topTile);
 }
 
 /*
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addULTRA_NODE(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
-    topConfig(toInsert, topTile);
-    bottomConfig(toInsert, bottomTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
+    topConfig(toInsert, notFlipped ? topTile : bottomTile);
+    bottomConfig(toInsert, notFlipped ? bottomTile : topTile);
 }
 
 /*
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_9_12_3(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
-    topConfig(toInsert, topTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
 
-    toInsert->bottomNode = NULL;
+    if (notFlipped)
+        bottomConfig(toInsert, bottomTile);
+    else
+        topConfig(toInsert, bottomTile);
+
+    toInsert->topNode = NULL;
 }
 
 /*
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_6_9_12(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    topConfig(toInsert, topTile);
-    bottomConfig(toInsert, bottomTile);
+    topConfig(toInsert, notFlipped ? topTile : bottomTile);
+    bottomConfig(toInsert, notFlipped ? bottomTile : topTile);
+
+    if (notFlipped)
+        leftConfig(toInsert, leftTile);
+    else
+        rightConfig(toInsert, leftTile);
 
     toInsert->rightNode = NULL;
 }
@@ -372,26 +465,28 @@ void addWIRE_6_9_12(TileState *toInsert, TileState *leftTile, TileState *rightTi
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_9_12_DOUBLE(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
-    topConfig(toInsert, topTile);
-    bottomConfig(toInsert, bottomTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
+    topConfig(toInsert, notFlipped ? topTile : bottomTile);
+    bottomConfig(toInsert, notFlipped ? bottomTile : topTile);
 }
 
 /*
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_12_3_DOUBLE(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    int notFlipped = (toInsert->orientation != -1);
 
-    leftConfig(toInsert, leftTile);
-    rightConfig(toInsert, rightTile);
-    topConfig(toInsert, topTile);
-    bottomConfig(toInsert, bottomTile);
+    leftConfig(toInsert, notFlipped ? leftTile : rightTile);
+    rightConfig(toInsert, notFlipped ? rightTile : leftTile);
+    topConfig(toInsert, notFlipped ? topTile : bottomTile);
+    bottomConfig(toInsert, notFlipped ? bottomTile : topTile);
 }
 
 /*
- * Configures the LEFT node of a tile.
+ * Configures the LEFT node of a tile. BOTH PARAMETERS MUST BE NON-NULL
  *
  * This function first checks to see if there is a connected tile and
  * node on the neighbor to the appropriate side of the tile. If there is an existing
@@ -403,29 +498,60 @@ void addWIRE_12_3_DOUBLE(TileState *toInsert, TileState *leftTile, TileState *ri
  * This node is typed as undecided (but will be resloved to passive or active
  * once a neighbor is added on that side).
  *
- * Finally, the tile being added is added as either by the source or target
- * tile for that node (see graph.h for more information on the source/target tiles).
+ * Finally, the tile being added is added as either as tile1 or tile2, whichever one is free
  */
 void leftConfig(TileState *toInsert, TileState *leftTile) {
+    Node *assignmentNode;
 
-    if (leftTile->rightNode != NULL) {
-        toInsert->leftNode = leftTile->rightNode;
-        if (isActiveType(leftTile))
-            toInsert->leftNode->currentType = active;
-        else
-            toInsert->leftNode->currentType = passive;
+    if (toInsert->orientation != -1)
+        assignmentNode = &(toInsert->leftNode);
+    else
+        assignmentNode = &(toInsert->rightNode);
+
+    if (leftTile == 0) {                                    //null check
+        *assignmentNode = 0;
     }
-    else {
-        toInsert->leftNode = newNode();
-        toInsert->leftNode->currentType = undecided;
+    else if (leftTile->orientation != -1) {                 //normal orientation
+        if (leftTile->rightNode != NULL) {
+            *assignmentNode = leftTile->rightNode;
+
+            if (isActiveType(leftTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
+    }
+    else {                                                  //flipped orientation
+        if (leftTile->leftNode != NULL) {
+            *assignmentNode = leftTile->leftNode;
+
+            if (isActiveType(leftTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
     }
 
-    toInsert->leftNode->targetTile = toInsert;
-
+    if (leftTile != 0) {
+        if (assignmentNode->tile1 == 0) {
+            assignmentNode->tile1 = toInsert;
+        }
+        else {
+            assignmentNode->tile2 = toInsert;
+        }
+    }
 }
 
 /*
- * Configures the RIGHT node of a tile.
+ * Configures the RIGHT node of a tile. BOTH PARAMETERS MUST BE NON-NULL
  *
  * This function first checks to see if there is a connected tile and
  * node on the neighbor to the appropriate side of the tile. If there is an existing
@@ -441,25 +567,53 @@ void leftConfig(TileState *toInsert, TileState *leftTile) {
  * tile for that node (see graph.h for more information on the source/target tiles).
  */
 void rightConfig(TileState *toInsert, TileState *rightTile) {
+    Node *assignmentNode;
 
-    if (rightTile->leftNode != NULL) {
-        toInsert->rightNode = rightTile->leftNode;
-        if (isActiveType(rightTile))
-            toInsert->leftNode->currentType = active;
+    if (toInsert->orientation != -1)
+        assignmentNode = &(toInsert->rightNode);
+    else
+        assignmentNode = &(toInsert->leftNode);
+
+    if (rightTile == 0) {
+        *assignmentNode = 0;
+    }
+    else if (rightTile->orientation != -1) {                //normal orientation
+        if (rightTile->leftNode != NULL) {
+            *assignmentNode = rightTile->leftNode;
+            if (isActiveType(rightTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
+    }
+    else {                                                  //flipped orientation
+        if (rightTile->rightNode != NULL) {
+            *assignmentNode = rightTile->rightNode;
+            if (isActiveType(rightTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
+    }
+
+    if (rightTile != 0) {
+        if (assignmentNode->tile1 == 0)
+            assignmentNode->tile1 = toInsert;
         else
-            toInsert->leftNode->currentType = passive;
+            assignmentNode->tile2 = toInsert;
     }
-    else {
-        toInsert->rightNode = newNode();
-        toInsert->rightNode->currentType = undecided;
-    }
-
-    toInsert->rightNode->sourceTile = toInsert;
-
 }
 
 /*
- * Configures the TOP node of a tile.
+ * Configures the TOP node of a tile. BOTH PARAMETERS MUST BE NON-NULL
  *
  * This function first checks to see if there is a connected tile and
  * node on the neighbor to the appropriate side of the tile. If there is an existing
@@ -475,26 +629,57 @@ void rightConfig(TileState *toInsert, TileState *rightTile) {
  * tile for that node (see graph.h for more information on the source/target tiles).
  */
 void topConfig(TileState *toInsert, TileState *topTile) {
+    Node *assignmentNode;
 
-    if (topTile->bottomNode != NULL) {
-        toInsert->topNode = topTile->bottomNode;
+    if (toInsert->orientation != -1)
+        assignmentNode = &(toInsert->topNode);
+    else
+        assignmentNode = &(toInsert->bottomNode);
 
-        if (isActiveType(topTile))
-            toInsert->topNode->currentType = active;
+    if (topTile == 0) {
+        *assignmentNode = 0;
+    }
+    else if (topTile->orientation != -1) {                  //normal orientation
+        if (topTile->bottomNode != NULL) {
+            *assignmentNode = topTile->bottomNode;
+
+            if (isActiveType(topTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
+    }
+    else {                                                  //flipped orientation
+        if (topTile->topNode != NULL) {
+            *assignmentNode = topTile->topNode;
+
+            if (isActiveType(topTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
+    }
+
+    if (topTile != 0) {
+        if (assignmentNode->tile1 == 0)
+            assignmentNode->tile1 = toInsert;
         else
-            toInsert->topNode->currentType = passive;
-
+            assignmentNode->tile2 = toInsert;
     }
-    else {
-        toInsert->topNode = newNode();
-        toInsert->topNode->currentType = undecided;
-    }
-
-    toInsert->topNode->targetTile = toInsert;
 }
 
 /*
- * Configures the BOTTOM node of a tile.
+ * Configures the BOTTOM node of a tile. BOTH PARAMETERS MUST BE NON-NULL
  *
  * This function first checks to see if there is a connected tile and
  * node on the neighbor to the appropriate side of the tile. If there is an existing
@@ -510,25 +695,54 @@ void topConfig(TileState *toInsert, TileState *topTile) {
  * tile for that node (see graph.h for more information on the source/target tiles).
  */
 void bottomConfig(TileState *toInsert, TileState *bottomTile) {
+    Node *assignmentNode;
 
-    if (bottomTile->topNode != NULL) {
-        toInsert->bottomNode = bottomTile->topNode;
+    if (toInsert->orientation != -1)
+        assignmentNode = &(toInsert->bottomNode);
+    else
+        assignmentNode = &(toInsert->topNode);
 
-        if (isActiveType(bottomTile))
-            toInsert->bottomNode->currentType = active;
+    if (bottomTile == 0) {
+        *assignmentNode = 0;
+    }
+    else if (bottomTile->orientation != -1) {                   //normal orientation
+        if (bottomTile->topNode != NULL) {
+            *assignmentNode = bottomTile->topNode;
+
+            if (isActiveType(bottomTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
+    }
+    else {                                                      //flipped orientation
+        if (bottomTile->bottomNode != NULL) {
+            *assignmentNode = bottomTile->bottomNode;
+
+            if (isActiveType(bottomTile))
+                assignmentNode->currentType = active;
+            else
+                assignmentNode->currentType = passive;
+
+        }
+        else {
+            *assignmentNode = newNode();
+            assignmentNode->currentType = undecided;
+        }
+    }
+
+    if (bottomTile != 0) {
+        if (assignmentNode->tile1 == 0)
+            assignmentNode->tile1 = toInsert;
         else
-            toInsert->bottomNode->currentType = passive;
-
+            assignmentNode->tile2 = toInsert;
     }
-    else {
-        toInsert->bottomNode = newNode();
-        toInsert->bottomNode->currentType = undecided;
-    }
-
-    toInsert->bottomNode->targetTile = toInsert;
-
 }
-
 
 /* Constructs the freeList of Nodes for the graph */
 void initNodes() {

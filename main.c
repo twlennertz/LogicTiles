@@ -43,14 +43,6 @@ void addTile(int tile) {
 
 }
 
-void printADC(uint16_t value) {
-
-    char buffer[4];
-    sprintf(buffer, "%x", value);
-
-    uPrint(buffer);
-}
-
 int main(void) {
     init();
 
@@ -145,6 +137,14 @@ void uPrint(char * message) {
         UCA0TXBUF = *message;
         message++;
     }
+}
+
+void printADC(uint16_t value) {
+
+    char buffer[4];
+    sprintf(buffer, "%x", value);
+
+    uPrint(buffer);
 }
 
 void printCmds() {
