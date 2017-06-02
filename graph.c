@@ -16,6 +16,7 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
     digiVal retVal = INDETERMINATE;
 
     digiVal tempVal1, tempVal2, tempVal3;
+    Node *tempNode1, *tempNode2, *tempNode3;
 
     if (currTile != 0 && currNode != 0) {
         TileState *neighborTile = getOtherTile(currNode, currTile);
@@ -33,7 +34,13 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
                 retVal = Operation_AND(tempVal1, tempVal2, tempVal3);
             }
             else {
-                retVal = getNodeValue(currNode, neighborTile);
+                if (!currNode->visited) {
+                    currNode->visited = 1;
+                    retVal = getNodeValue(currNode, neighborTile);
+                }
+                else {
+                    retVal = currNode->value;
+                }
             }
 
             break;
@@ -46,7 +53,13 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
                 retVal = Operation_OR(tempVal1, tempVal2, tempVal3);
             }
             else {
-                retVal = getNodeValue(currNode, neighborTile);
+                if (!currNode->visited) {
+                    currNode->visited = 1;
+                    retVal = getNodeValue(currNode, neighborTile);
+                }
+                else {
+                    retVal = currNode->value;
+                }
             }
 
             break;
@@ -59,7 +72,13 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
                 retVal = Operation_XOR(tempVal1, tempVal2, tempVal3);
             }
             else {
-                retVal = getNodeValue(currNode, neighborTile);
+                if (!currNode->visited) {
+                    currNode->visited = 1;
+                    retVal = getNodeValue(currNode, neighborTile);
+                }
+                else {
+                    retVal = currNode->value;
+                }
             }
 
             break;
@@ -70,30 +89,37 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
                 retVal = Operation_NOT(tempVal1);
             }
             else {
-                retVal = getNodeValue(currNode, neighborTile);
+                if (!currNode->visited) {
+                    currNode->visited = 1;
+                    retVal = getNodeValue(currNode, neighborTile);
+                }
+                else {
+                    retVal = currNode->value;
+                }
             }
+
             break;
         case SOURCE_A:
             if (isGateOutput(currNode, currTile))
-                retVal = CurrSourceA;
+                retVal = currSourceA;
             else
                 retVal = INDETERMINATE;
             break;
         case SOURCE_B:
             if (isGateOutput(currNode, currTile))
-                retVal = CurrSourceB;
+                retVal = currSourceB;
             else
                 retVal = INDETERMINATE;
             break;
         case SOURCE_C:
             if (isGateOutput(currNode, currTile))
-                retVal = CurrSourceC;
+                retVal = currSourceC;
             else
                 retVal = INDETERMINATE;
             break;
         case SOURCE_D:
             if (isGateOutput(currNode, currTile))
-                retVal = CurrSourceD;
+                retVal = currSourceD;
             else
                 retVal = INDETERMINATE;
             break;
@@ -110,29 +136,447 @@ digiVal getNodeValue(Node *currNode, TileState *currTile) {
             retVal = INDETERMINATE;
             break;
         case HORIZONTAL:
+            currNode->visited = 1;
+
+            if (currNode == currTile->rightNode) {
+                if (currTile->leftNode->visited)
+                    retVal = currTile->leftNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->leftNode,
+                                                            getOtherTile(currTile->leftNode, currTile));
+            }
+            else {
+                if (currTile->rightNode->visited)
+                    retVal = currTile->rightNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->rightNode,
+                                                            getOtherTile(currTile->rightNode, currTile));
+            }
+
             break;
         case VERTICAL:
+            currNode->visited = 1;
+
+            if (currNode == currTile->topNode) {
+                if (currTile->bottomNode->visited)
+                    retVal = currTile->bottomNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->bottomNode,
+                                                            getOtherTile(currTile->bottomNode, currTile));
+            }
+            else {
+                if (currTile->topNode->visited)
+                    retVal = currTile->topNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->topNode,
+                                                            getOtherTile(currTile->topNode, currTile));
+            }
             break;
         case WIRE_9_12:
+            currNode->visited = 1;
+
+            if (currNode == currTile->rightNode) {
+                if (currTile->bottomNode->visited)
+                    retVal = currTile->bottomNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->bottomNode,
+                                                            getOtherTile(currTile->bottomNode, currTile));
+            }
+            else {
+                if (currTile->rightNode->visited)
+                    retVal = currTile->rightNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->rightNode,
+                                                            getOtherTile(currTile->rightNode, currTile));
+            }
             break;
         case WIRE_12_3:
+            currNode->visited = 1;
+
+            if (currNode == currTile->bottomNode) {
+                if (currTile->leftNode->visited)
+                    retVal = currTile->leftNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->leftNode,
+                                                            getOtherTile(currTile->leftNode, currTile));
+            }
+            else {
+                if (currTile->bottomNode->visited)
+                    retVal = currTile->bottomNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->bottomNode,
+                                                            getOtherTile(currTile->bottomNode, currTile));
+            }
             break;
         case JUMP:
+            currNode->visited = 1;
+
+            if (currNode == currTile->rightNode) {
+                if (currTile->leftNode->visited)
+                    retVal = currTile->leftNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->leftNode,
+                                                            getOtherTile(currTile->leftNode, currTile));
+            }
+            else if (currNode == currTile->leftNode) {
+                if (currTile->rightNode->visited)
+                    retVal = currTile->rightNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->rightNode,
+                                                            getOtherTile(currTile->rightNode, currTile));
+            }
+            else if (currNode == currTile->topNode) {
+                if (currTile->bottomNode->visited)
+                    retVal = currTile->bottomNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->bottomNode,
+                                      getOtherTile(currTile->bottomNode, currTile));
+            }
+            else {
+                if (currTile->topNode->visited)
+                    retVal = currTile->topNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->topNode,
+                                                        getOtherTile(currTile->topNode, currTile));
+            }
             break;
         case ULTRA_NODE:
+            currNode->visited = 1;
+
+            if (currNode != currTile->rightNode) {
+                tempNode1 = currTile->leftNode;
+                tempNode2 = currTile->topNode;
+                tempNode3 = currTile->bottomNode;
+
+                if (currTile->leftNode->visited)
+                    tempVal1 = currTile->leftNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->leftNode, currTile);
+
+                if (currTile->topNode->visited)
+                    tempVal2 = currTile->topNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->topNode, currTile);
+
+                if (currTile->bottomNode->visited)
+                    tempVal3 = currTile->bottomNode->value;
+                else
+                    tempVal3 = getNodeValue(currTile->bottomNode, currTile);
+            }
+            else if (currNode != currTile->leftNode) {
+                tempNode1 = currTile->rightNode;
+                tempNode2 = currTile->topNode;
+                tempNode3 = currTile->bottomNode;
+
+                if (currTile->rightNode->visited)
+                    tempVal1 = currTile->rightNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->rightNode, currTile);
+
+                if (currTile->topNode->visited)
+                    tempVal2 = currTile->topNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->topNode, currTile);
+
+                if (currTile->bottomNode->visited)
+                    tempVal3 = currTile->bottomNode->value;
+                else
+                    tempVal3 = getNodeValue(currTile->bottomNode, currTile);
+            }
+            else if (currNode != currTile->topNode) {
+                tempNode1 = currTile->rightNode;
+                tempNode2 = currTile->leftNode;
+                tempNode3 = currTile->bottomNode;
+
+                if (currTile->rightNode->visited)
+                    tempVal1 = currTile->rightNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->rightNode, currTile);
+
+                if (currTile->leftNode->visited)
+                    tempVal2 = currTile->leftNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->leftNode, currTile);
+
+                if (currTile->bottomNode->visited)
+                    tempVal3 = currTile->bottomNode->value;
+                else
+                    tempVal3 = getNodeValue(currTile->bottomNode, currTile);
+            }
+            else {
+                tempNode1 = currTile->rightNode;
+                tempNode2 = currTile->leftNode;
+                tempNode3 = currTile->topNode;
+
+                if (currTile->rightNode->visited)
+                    tempVal1 = currTile->rightNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->rightNode, currTile);
+
+                if (currTile->leftNode->visited)
+                    tempVal2 = currTile->leftNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->leftNode, currTile);
+
+                if (currTile->bottomNode->visited)
+                    tempVal3 = currTile->topNode->value;
+                else
+                    tempVal3 = getNodeValue(currTile->topNode, currTile);
+            }
+
+            retVal = Operation_ULTRA(tempVal1, tempVal2, tempVal3, tempNode1, tempNode2, tempNode3);
             break;
         case WIRE_9_12_3:
+            currNode->visited = 1;
+
+            if (currNode == currTile->leftNode) {
+                tempNode1 = currTile->rightNode;
+                tempNode2 = currTile->bottomNode;
+
+                if (currTile->rightNode->visited)
+                    tempVal1 = currTile->rightNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->rightNode, currTile);
+
+                if (currTile->bottomNode->visited)
+                    tempVal2 = currTile->bottomNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->bottomNode, currTile);
+
+                retVal = Operation_TRI_WIRE(tempVal1, tempVal2, tempNode1, tempNode2);
+            }
+            else if (currNode == currTile->bottomNode) {
+                tempNode1 = currTile->rightNode;
+                tempNode2 = currTile->leftNode;
+
+                if (currTile->rightNode->visited)
+                    tempVal1 = currTile->rightNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->rightNode, currTile);
+
+                if (currTile->leftNode->visited)
+                    tempVal2 = currTile->leftNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->leftNode, currTile);
+
+                retVal = Operation_TRI_WIRE(tempVal1, tempVal2, tempNode1, tempNode2);
+            }
+            else if (currNode == currTile->rightNode) {
+                tempNode1 = currTile->bottomNode;
+                tempNode2 = currTile->leftNode;
+
+                if (currTile->bottomNode->visited)
+                    tempVal1 = currTile->bottomNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->bottomNode, currTile);
+
+                if (currTile->leftNode->visited)
+                    tempVal2 = currTile->leftNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->leftNode, currTile);
+
+                retVal = Operation_TRI_WIRE(tempVal1, tempVal2, tempNode1, tempNode2);
+            }
+            else {
+                retVal = INDETERMINATE;
+            }
+
             break;
         case WIRE_6_9_12:
+            currNode->visited = 1;
+
+            if (currNode == currTile->leftNode) {
+                tempNode1 = currTile->topNode;
+                tempNode2 = currTile->bottomNode;
+
+                if (currTile->topNode->visited)
+                    tempVal1 = currTile->topNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->topNode, currTile);
+
+                if (currTile->bottomNode->visited)
+                    tempVal2 = currTile->bottomNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->bottomNode, currTile);
+
+                retVal = Operation_TRI_WIRE(tempVal1, tempVal2, tempNode1, tempNode2);
+            }
+            else if (currNode == currTile->bottomNode) {
+                tempNode1 = currTile->topNode;
+                tempNode2 = currTile->leftNode;
+
+                if (currTile->topNode->visited)
+                    tempVal1 = currTile->topNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->topNode, currTile);
+
+                if (currTile->leftNode->visited)
+                    tempVal2 = currTile->leftNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->leftNode, currTile);
+
+                retVal = Operation_TRI_WIRE(tempVal1, tempVal2, tempNode1, tempNode2);
+            }
+            else if (currNode == currTile->topNode) {
+                tempNode1 = currTile->bottomNode;
+                tempNode2 = currTile->leftNode;
+
+                if (currTile->bottomNode->visited)
+                    tempVal1 = currTile->bottomNode->value;
+                else
+                    tempVal1 = getNodeValue(currTile->bottomNode, currTile);
+
+                if (currTile->leftNode->visited)
+                    tempVal2 = currTile->leftNode->value;
+                else
+                    tempVal2 = getNodeValue(currTile->leftNode, currTile);
+
+                retVal = Operation_TRI_WIRE(tempVal1, tempVal2, tempNode1, tempNode2);
+            }
+            else {
+                retVal = INDETERMINATE;
+            }
+
             break;
         case WIRE_9_12_DOUBLE:
+            currNode->visited = 1;
+
+            if (currNode == currTile->rightNode) {
+                if (currTile->bottomNode->visited)
+                    retVal = currTile->bottomNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->bottomNode,
+                                                            getOtherTile(currTile->bottomNode, currTile));
+            }
+            else if (currNode == currTile->bottomNode) {
+                if (currTile->rightNode->visited)
+                    retVal = currTile->rightNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->rightNode,
+                                                            getOtherTile(currTile->rightNode, currTile));
+            }
+            else if (currNode == currTile->topNode) {
+                if (currTile->leftNode->visited)
+                    retVal = currTile->leftNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->leftNode,
+                                                        getOtherTile(currTile->leftNode, currTile));
+            }
+            else {
+                if (currTile->topNode->visited)
+                    retVal = currTile->topNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->topNode,
+                                                        getOtherTile(currTile->topNode, currTile));
+            }
+
             break;
         case WIRE_12_3_DOUBLE:
+            currNode->visited = 1;
+
+            if (currNode == currTile->bottomNode) {
+                if (currTile->leftNode->visited)
+                    retVal = currTile->leftNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->leftNode,
+                                                        getOtherTile(currTile->leftNode, currTile));
+            }
+            else if (currNode == currTile->leftNode) {
+                if (currTile->bottomNode->visited)
+                    retVal = currTile->bottomNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->bottomNode,
+                                                        getOtherTile(currTile->bottomNode, currTile));
+            }
+            else if (currNode == currTile->topNode) {
+                if (currTile->rightNode->visited)
+                    retVal = currTile->rightNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->rightNode,
+                                                        getOtherTile(currTile->rightNode, currTile));
+            }
+            else {
+                if (currTile->topNode->visited)
+                    retVal = currTile->topNode->value;
+                else
+                    currNode->value = retVal = getNodeValue(currTile->topNode,
+                                                        getOtherTile(currTile->topNode, currTile));
+            }
             break;
         default:
+            currNode->visited = 1;
+            retVal = INDETERMINATE;
             //might want to signal an error here
             break;
         }
+    }
+
+    currNode->value = retVal;
+    return retVal;
+}
+
+/* Unvisits all the nodes of every tile on the board. Must be called with the allocated array
+ * of all the TileStates */
+void unvisitAllNodes(TileState *list) {
+    unsigned int i;
+    for (i = 0; i < NUM_TILES; i++) {
+        list[i].leftNode->visited = 0;
+        list[i].rightNode->visited = 0;
+        list[i].topNode->visited = 0;
+        list[i].bottomNode->visited = 0;
+
+        list[i].leftNode->value = INDETERMINATE;
+        list[i].rightNode->value = INDETERMINATE;
+        list[i].topNode->value = INDETERMINATE;
+        list[i].bottomNode->value = INDETERMINATE;
+    }
+}
+
+digiVal Operation_ULTRA(digiVal v1, digiVal v2, digiVal v3, Node *n1, Node *n2, Node *n3) {
+    int validCount = 0;
+    digiVal retVal = INDETERMINATE;
+
+    validCount += (v1 != INDETERMINATE) ? 1 : 0;
+    validCount += (v2 != INDETERMINATE) ? 1 : 0;
+    validCount += (v3 != INDETERMINATE) ? 1 : 0;
+
+    if (validCount == 1) {
+       if (v1 != INDETERMINATE) {
+           retVal = v1;
+           n2->value = retVal;
+           n3->value = retVal;
+       }
+       else if (v2 != INDETERMINATE) {
+           retVal = v2;
+           n1->value = retVal;
+           n3->value = retVal;
+       }
+       else {
+           retVal = v3;
+           n1->value = retVal;
+           n2->value = retVal;
+       }
+    }
+
+    return retVal;
+}
+
+digiVal Operation_TRI_WIRE(digiVal v1, digiVal v2, Node *n1, Node *n2) {
+    int validCount = 0;
+    digiVal retVal = INDETERMINATE;
+
+    validCount += (v1 != INDETERMINATE) ? 1 : 0;
+    validCount += (v2 != INDETERMINATE) ? 1 : 0;
+
+    if (validCount == 1) {
+       if (v1 != INDETERMINATE) {
+           retVal = v1;
+           n2->value = retVal;
+       }
+       else if (v2 != INDETERMINATE) {
+           retVal = v2;
+           n1->value = retVal;
+       }
     }
 
     return retVal;
@@ -579,8 +1023,17 @@ void addVERTICAL(TileState *toInsert, TileState *leftTile, TileState *rightTile,
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_9_12(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
-    rightConfig(toInsert, leftTile);
-    bottomConfig(toInsert, topTile);
+    int notFlipped = (toInsert->orientation != -1);
+
+    if (notFlipped)
+        rightConfig(toInsert, rightTile);
+    else
+        leftConfig(toInsert, rightTile);
+
+    if (notFlipped)
+        bottomConfig(toInsert, bottomTile);
+    else
+        topConfig(toInsert, bottomTile);
 
     toInsert->topNode = NULL;
     toInsert->leftNode = NULL;
@@ -590,8 +1043,17 @@ void addWIRE_9_12(TileState *toInsert, TileState *leftTile, TileState *rightTile
  * Adds and modifies corresponding nodes for the tile to be added.
  */
 void addWIRE_12_3(TileState *toInsert, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
-    bottomConfig(toInsert, topTile);
-    leftConfig(toInsert, rightTile);
+    int notFlipped = (toInsert->orientation != -1);
+
+    if (notFlipped)
+        bottomConfig(toInsert, bottomTile);
+    else
+        topConfig(toInsert, bottomTile);
+
+    if (notFlipped)
+        leftConfig(toInsert, leftTile);
+    else
+        rightConfig(toInsert, leftTile);
 
     toInsert->rightNode = NULL;
     toInsert->topNode = NULL;

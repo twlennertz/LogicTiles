@@ -225,6 +225,7 @@ void init() {
     initTileState();
     initNodes();
 
+    unvisitAllNodes(tileStates);
     selectBoardTile(0);                         //Initialize board tile selection to 0 to start w/ known state
 }
 

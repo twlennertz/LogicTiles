@@ -41,7 +41,7 @@
 typedef enum{IDLE_POLL, CMD_PARSE, UPDATE_CKT} state;
 
 /* Internal representation of digital values */
-typedef enum {ZERO, ONE, INDETERMINATE} digiVal;
+typedef enum {ZERO, ONE, INDETERMINATE, UNVISITED} digiVal;
 
 /* Specific Pins used for ADC, Tile Muxing, and Magnet Muxing */
 #define ADC1_PIN 0x06 //Port 1, Pin 5 (A5)
