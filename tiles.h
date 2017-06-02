@@ -7,6 +7,8 @@
 #ifndef TILES_H_
 #define TILES_H_
 
+extern int selectedModule;
+
 typedef enum{M0, M1, M2} magnet;
 typedef enum{N1, N2, S1, S2, U} magcode;
 

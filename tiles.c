@@ -19,6 +19,9 @@
 #include "main.h"
 #include "tiles.h"
 
+/* Keeps track of current module selected */
+int selectedModule = 0;
+
 /* Keeps track of the currently selected tile */
 static int currSelTile = 0;
 
@@ -30,19 +33,17 @@ int pollTiles(TileState *tileStates) {
     selectMag(M2); //Magnet 2 is baseline detection magnet
 
     int i = 0;
-    //for(i = 0; i < NUM_TILES; i++) {
+    for(i = 0; i < NUM_TILES; i++) {
         selectBoardTile(i);
         magcode currCode = readTileMag();
-        __delay_cycles(9000);
-
 
         /* check if read code matches what is currently known */
-        /*if (tileStates[i].mag2 != currCode) {
+        if (tileStates[i].mag2 != currCode) {
             tileStates[i].mag2 = currCode;
             returnTileNum = i;
             break;
-        }*/
-    //}
+        }
+    }
 
     return returnTileNum;
 }
@@ -110,8 +111,10 @@ void selectModuleTile(int modTileNum) {
  * Particular application uses pins 0-2 on port 3, so nothing fancy needed. Alternatively,
  * define MODULE_SEL0-MODULE_SEL2 in "main.h" and set them the old-fashion way */
 void selectModule(int moduleNum) {
-    P3OUT &= ~MODULE_CTRL;
-    P3OUT |= moduleNum;
+    selectedModule = moduleNum;
+
+    //P3OUT &= ~MODULE_CTRL;
+    //P3OUT |= moduleNum;
 }
 
 /* Determines the type of the tile represented by the TileState structure pointed to by *tile, done through

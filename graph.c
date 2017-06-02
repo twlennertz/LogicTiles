@@ -798,15 +798,19 @@ void insertTile(unsigned int changedTile, TileState *tileStates) {
         addSOURCE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case PROBE_A:
+        currProbeATile = toInsert;
         addPROBE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case PROBE_B:
+        currProbeBTile = toInsert;
         addPROBE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case PROBE_C:
+        currProbeCTile = toInsert;
         addPROBE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case PROBE_D:
+        currProbeDTile = toInsert;
         addPROBE(toInsert, leftTile, rightTile, topTile, bottomTile);
         break;
     case HORIZONTAL:
@@ -855,6 +859,23 @@ void insertTile(unsigned int changedTile, TileState *tileStates) {
  * the node will be freed.
  */
 void removeTile(TileState *toRemove, TileState *leftTile, TileState *rightTile, TileState *topTile, TileState *bottomTile) {
+    /* Remove references to the probe tiles */
+    if (currProbeATile == toRemove) {
+        currProbeATile = 0;
+        currProbeANode = 0;
+    }
+    else if (currProbeBTile == toRemove) {
+        currProbeBTile = 0;
+        currProbeBNode = 0;
+    } else if (currProbeCTile == toRemove) {
+        currProbeBTile = 0;
+        currProbeBNode = 0;
+    }
+    else if (currProbeDTile == toRemove) {
+        currProbeBTile = 0;
+        currProbeBNode = 0;
+    }
+
     if (toRemove->rightNode != NULL) {
 
         if (toRemove == toRemove->rightNode->tile1) {   //is tile1 of node
@@ -932,6 +953,8 @@ void removeTile(TileState *toRemove, TileState *leftTile, TileState *rightTile, 
 
         toRemove->bottomNode = NULL;
     }
+
+
 }
 
 /*
@@ -986,6 +1009,21 @@ void addPROBE(TileState *toInsert, TileState *leftTile, TileState *rightTile, Ti
         leftConfig(toInsert, leftTile);
     else
         rightConfig(toInsert, leftTile);
+
+    switch (toInsert->type) {
+    case PROBE_A:
+        currProbeANode = toInsert->leftNode;
+        break;
+    case PROBE_B:
+        currProbeBNode = toInsert->leftNode;
+        break;
+    case PROBE_C:
+        currProbeCNode = toInsert->leftNode;
+        break;
+    case PROBE_D:
+        currProbeDNode = toInsert->leftNode;
+        break;
+    }
 
 
     toInsert->topNode = NULL;

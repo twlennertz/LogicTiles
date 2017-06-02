@@ -69,6 +69,19 @@ extern digiVal currSourceB;
 extern digiVal currSourceC;
 extern digiVal currSourceD;
 
+struct Node;
+
+/* Current Nodes and Tiles of Probe Blocks */
+extern struct Node *currProbeANode;
+extern struct Node *currProbeBNode;
+extern struct Node *currProbeCNode;
+extern struct Node *currProbeDNode;
+
+extern TileState *currProbeATile;
+extern TileState *currProbeBTile;
+extern TileState *currProbeCTile;
+extern TileState *currProbeDTile;
+
 /* function declarations */
 void init();
 
@@ -82,6 +95,11 @@ state cmdParse();
 void uPrint(char * message);
 void printCmds();
 void printADC(uint16_t value);
+void printTiles();
+void printProbes();
+void setSource(char source);
+void clearSource(char source);
+void nextToken(char *tok);
 
 void updateTile(unsigned int tileNum);
 magcode readTileMag();

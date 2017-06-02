@@ -11,12 +11,27 @@
 #include "tiles.h"
 #include "graph.h"
 #include <stdint.h>
+#include <string.h>
+
+/* Uncomment in to put in debugging mode, which prints a lot of status stuff as it happens */
+#define _DEBUG_ON
 
 /* Current Values of the Source Blocks */
-digiVal currSourceA = INDETERMINATE;
-digiVal currSourceB = INDETERMINATE;
-digiVal currSourceC = INDETERMINATE;
-digiVal currSourceD = INDETERMINATE;
+digiVal currSourceA = ZERO;
+digiVal currSourceB = ZERO;
+digiVal currSourceC = ZERO;
+digiVal currSourceD = ZERO;
+
+/* Current Nodes and Tiles of Probe Blocks */
+Node *currProbeANode = 0;
+Node *currProbeBNode = 0;
+Node *currProbeCNode = 0;
+Node *currProbeDNode = 0;
+
+TileState *currProbeATile = 0;
+TileState *currProbeBTile = 0;
+TileState *currProbeCTile = 0;
+TileState *currProbeDTile = 0;
 
 /* Holds last read value of ADC (from readTileMag()) */
 static volatile uint16_t lastReadADCValue = 0;
@@ -76,6 +91,11 @@ int main(void) {
             __enable_interrupt();
             break;
 
+        case UPDATE_CKT:
+            __disable_interrupt();
+            //currentState = updateCkt();
+            __enable_interrupt();
+
         default:
             break;
         }
@@ -109,31 +129,210 @@ state idlePoll() {
         nextState = CMD_PARSE;
     }
     else if ((changedTile = pollTiles(tileStates)) > 0) {
-        if (tileStates[changedTile].mag2 == U) {
-            ; //Call a remove-from-graph function here
-        }
-        else {
-            updateTile(changedTile);
-            insertTile(changedTile, tileStates);
-        }
+        __delay_cycles(10000);
 
-        nextState = UPDATE_CKT;
+        updateTile(changedTile);
+        insertTile(changedTile, tileStates);
+
+        //nextState = UPDATE_CKT;
     }
   
     return nextState;
 }
 
 state cmdParse() {
+    char* bufPtr = uBuff;
 
-    //char buf[5];
-
-    uPrint("\n\rI Read: ");
+#ifdef _DEBUG_ON
+    uPrint("\n Read: ");
     uPrint(uBuff);
-    uPrint("\r\n>:");
+    uPrint("\n");
+#endif
+
+    if (!strncmp(bufPtr, "set", 3)) {
+       nextToken(bufPtr);
+       setSource(*bufPtr);
+    }
+    else if (!strncmp(bufPtr, "clear", 4)) {
+        nextToken(bufPtr);
+        setSource(*bufPtr);
+    }
+    else if (!strncmp(bufPtr, "printTiles", 10)) {
+        printTiles();
+    }
+    else if (!strncmp(bufPtr, "run", 3)) {
+        printProbes();
+    }
 
     uBuff[0] = '\0';
 
     return IDLE_POLL;
+}
+
+void printTiles() {
+    unsigned int i;
+
+    for (i = 0; i < NUM_TILES; i++) {
+        char buffer[50];
+        char buffer2[50];
+
+        sprintf(buffer, "tile %d: ", i);
+        uPrint(buffer);
+
+        char *typeStr;
+        switch (tileStates[i].type) {
+        case EMPTY:
+            typeStr = "EMPTY";
+            break;
+        case AND:
+            typeStr = "AND";
+            break;
+        case OR:
+            typeStr = "OR";
+            break;
+        case XOR:
+            typeStr = "XOR";
+            break;
+        case NOT:
+            typeStr = "NOT";;
+            break;
+        case SOURCE_A:
+            typeStr = "Source A";
+            break;
+        case SOURCE_B:
+            typeStr = "Source B";
+            break;
+        case SOURCE_C:
+            typeStr = "Source C";
+            break;
+        case SOURCE_D:
+            typeStr = "SOURCE D";
+            break;
+        case PROBE_A:
+            typeStr = "PROBE A";
+            break;
+        case PROBE_B:
+            typeStr = "PROBE B";
+            break;
+        case PROBE_C:
+            typeStr = "PROBE C";
+            break;
+        case PROBE_D:
+            typeStr = "PROBE D";
+            break;
+        case HORIZONTAL:
+            typeStr = "HORIZONTAL";
+            break;
+        case VERTICAL:
+            typeStr = "VERTICAL";
+            break;
+        case WIRE_9_12:
+            typeStr = "WIRE_9_12";
+            break;
+        case WIRE_12_3:
+            typeStr = "WIRE_12_3";
+            break;
+        case JUMP:
+            typeStr = "JUMP";
+            break;
+        case ULTRA_NODE:
+            typeStr = "ULTRA_NODE";
+            break;
+        case WIRE_9_12_3:
+            typeStr = "WIRE_9_12_3";
+            break;
+        case WIRE_6_9_12:
+            typeStr = "WIRE_6_9_12";
+            break;
+        case WIRE_9_12_DOUBLE:
+            typeStr = "WIRE_9_12_DOUBLE";
+            break;
+        case WIRE_12_3_DOUBLE:
+            typeStr = "WIRE_12_3_DOUBLE";
+            break;
+        default:
+            typeStr = "UNKNOWN";
+            //might want to signal an error here
+            break;
+        }
+
+        sprintf(buffer2, "%s%s\n", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "");
+        uPrint(buffer2);
+    }
+}
+
+void printProbes() {
+    if (currProbeATile && currProbeANode) {
+        uPrint("\nProbe A: ");
+        switch (getNodeValue(currProbeANode, currProbeATile)) {
+        case ONE:
+            uPrint("1\n");
+            break;
+        case ZERO:
+            uPrint("0\n");
+            break;
+        case INDETERMINATE:
+            uPrint("Indeterminate -- poorly formed circuit\n");
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+void setSource(char source) {
+    switch (source) {
+    case 'a':
+    case 'A':
+        uPrint("\nSource A set.\n");
+        currSourceA = ONE;
+        break;
+
+    case 'b':
+    case 'B':
+        uPrint("\nSource B set.\n");
+        currSourceB = ONE;
+        break;
+
+    default:
+        uPrint("\nNo such source to set.\n");
+        break;
+    }
+}
+
+void clearSource(char source) {
+    switch (source) {
+    case 'a':
+    case 'A':
+        uPrint("\nSource A cleared.\n");
+        currSourceA = ZERO;
+        break;
+
+    case 'b':
+    case 'B':
+        uPrint("\nSource B cleared.\n");
+        currSourceB = ZERO;
+        break;
+
+    default:
+        uPrint("\nNo such source to clear.\n");
+        break;
+    }
+}
+
+/* Moves char *pointer to next token (after whitespace) in string */
+void nextToken(char *tok) {
+    while(*tok && *tok != ' ' && *tok != '\n')
+        tok++;
+
+    while (*tok) {
+        if (*tok == ' ' || *tok == '\n')
+            tok++;
+        else
+            break;
+    }
+
+    return tok;
 }
 
 void uPrint(char * message) {
@@ -344,12 +543,6 @@ void __attribute__ ((interrupt(ADC12_B_VECTOR))) ADC12_ISR (void)
         case ADC12IV__ADC12LOIFG:  break;   // Vector  8:  ADC12BLO
         case ADC12IV__ADC12INIFG:  break;   // Vector 10:  ADC12BIN
         case ADC12IV__ADC12IFG0:            // Vector 12:  ADC12MEM0 Interrupt
-            //test code
-            /*if (ADC12MEM0 >= 0x7ff)         // ADC12MEM0 = A1 > 0.5AVcc?
-                P1OUT |= BIT0;              // P1.0 = 1
-            else
-                P1OUT &= ~BIT0;             // P1.0 = 0 */
-
             lastReadADCValue = ADC12MEM0;
 
             // Exit from LPM0 and continue executing main
