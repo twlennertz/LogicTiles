@@ -5,6 +5,8 @@
 #include "tiles.h"
 #include "graph.h"
 
+#include <stdint.h>
+
 static Node preallocNodes[MAX_NODES];
 
 static Node *freeListHead;
@@ -13,57 +15,249 @@ static Node *freeListTail;
 digiVal getNodeValue(Node *currNode, TileState *currTile) {
     digiVal retVal = INDETERMINATE;
 
-    switch (currTile->type) {
-    case EMPTY:
-        break;
-    case AND:
-        break;
-    case OR:
-        break;
-    case XOR:
-        break;
-    case NOT:
-        break;
-    case SOURCE_A:
-        break;
-    case SOURCE_B:
-        break;
-    case SOURCE_C:
-        break;
-    case SOURCE_D:
-        break;
-    case PROBE_A:
-        break;
-    case PROBE_B:
-        break;
-    case PROBE_C:
-        break;
-    case PROBE_D:
-        break;
-    case HORIZONTAL:
-        break;
-    case VERTICAL:
-        break;
-    case WIRE_9_12:
-        break;
-    case WIRE_12_3:
-        break;
-    case JUMP:
-        break;
-    case ULTRA_NODE:
-        break;
-    case WIRE_9_12_3:
-        break;
-    case WIRE_6_9_12:
-        break;
-    case WIRE_9_12_DOUBLE:
-        break;
-    case WIRE_12_3_DOUBLE:
-        break;
-    default:
-        //might want to signal an error here
-        break;
+    digiVal tempVal1, tempVal2, tempVal3;
+
+    if (currTile != 0 && currNode != 0) {
+        TileState *neighborTile = getOtherTile(currNode, currTile);
+
+        switch (currTile->type) {
+        case EMPTY:
+            //stays indeterminate
+            break;
+        case AND:
+            if (isGateOutput(currNode, currTile)) {
+                tempVal1 = getNodeValue(currTile->leftNode, currTile);
+                tempVal2 = getNodeValue(currTile->rightNode, currTile);
+                tempVal3 = getNodeValue(currTile->bottomNode, currTile);
+
+                retVal = Operation_AND(tempVal1, tempVal2, tempVal3);
+            }
+            else {
+                retVal = getNodeValue(currNode, neighborTile);
+            }
+
+            break;
+        case OR:
+            if (isGateOutput(currNode, currTile)) {
+                tempVal1 = getNodeValue(currTile->leftNode, currTile);
+                tempVal2 = getNodeValue(currTile->rightNode, currTile);
+                tempVal3 = getNodeValue(currTile->bottomNode, currTile);
+
+                retVal = Operation_OR(tempVal1, tempVal2, tempVal3);
+            }
+            else {
+                retVal = getNodeValue(currNode, neighborTile);
+            }
+
+            break;
+        case XOR:
+            if (isGateOutput(currNode, currTile)) {
+                tempVal1 = getNodeValue(currTile->leftNode, currTile);
+                tempVal2 = getNodeValue(currTile->rightNode, currTile);
+                tempVal3 = getNodeValue(currTile->bottomNode, currTile);
+
+                retVal = Operation_XOR(tempVal1, tempVal2, tempVal3);
+            }
+            else {
+                retVal = getNodeValue(currNode, neighborTile);
+            }
+
+            break;
+        case NOT:
+            if (isGateOutput(currNode, currTile)) {
+                tempVal1 = getNodeValue(currTile->leftNode, currTile);
+
+                retVal = Operation_NOT(tempVal1);
+            }
+            else {
+                retVal = getNodeValue(currNode, neighborTile);
+            }
+            break;
+        case SOURCE_A:
+            if (isGateOutput(currNode, currTile))
+                retVal = CurrSourceA;
+            else
+                retVal = INDETERMINATE;
+            break;
+        case SOURCE_B:
+            if (isGateOutput(currNode, currTile))
+                retVal = CurrSourceB;
+            else
+                retVal = INDETERMINATE;
+            break;
+        case SOURCE_C:
+            if (isGateOutput(currNode, currTile))
+                retVal = CurrSourceC;
+            else
+                retVal = INDETERMINATE;
+            break;
+        case SOURCE_D:
+            if (isGateOutput(currNode, currTile))
+                retVal = CurrSourceD;
+            else
+                retVal = INDETERMINATE;
+            break;
+        case PROBE_A:
+            retVal = INDETERMINATE;
+            break;
+        case PROBE_B:
+            retVal = INDETERMINATE;
+            break;
+        case PROBE_C:
+            retVal = INDETERMINATE;
+            break;
+        case PROBE_D:
+            retVal = INDETERMINATE;
+            break;
+        case HORIZONTAL:
+            break;
+        case VERTICAL:
+            break;
+        case WIRE_9_12:
+            break;
+        case WIRE_12_3:
+            break;
+        case JUMP:
+            break;
+        case ULTRA_NODE:
+            break;
+        case WIRE_9_12_3:
+            break;
+        case WIRE_6_9_12:
+            break;
+        case WIRE_9_12_DOUBLE:
+            break;
+        case WIRE_12_3_DOUBLE:
+            break;
+        default:
+            //might want to signal an error here
+            break;
+        }
     }
+
+    return retVal;
+}
+
+digiVal Operation_AND(digiVal v1, digiVal v2, digiVal v3) {
+    digiVal retVal = INDETERMINATE;
+    int validCount = 0;
+    uint16_t tempVal1, tempVal2, tempVal3;
+
+    validCount += (v1 != INDETERMINATE) ? 1 : 0;
+    validCount += (v2 != INDETERMINATE) ? 1 : 0;
+    validCount += (v3 != INDETERMINATE) ? 1 : 0;
+
+    if (validCount < 2)
+        retVal = INDETERMINATE;
+    else if (validCount < 3) {
+        if (v1 == INDETERMINATE) {
+            tempVal2 = (v2 == ONE) ? 1 : 0;
+            tempVal3 = (v3 == ONE) ? 1 : 0;
+            retVal = (tempVal2 && tempVal3) ? ONE : ZERO;
+        }
+        else if (v2 == INDETERMINATE) {
+            tempVal1 = (v1 == ONE) ? 1 : 0;
+            tempVal3 = (v3 == ONE) ? 1 : 0;
+            retVal = (tempVal1 && tempVal3) ? ONE : ZERO;
+        }
+        else {
+            tempVal1 = (v1 == ONE) ? 1 : 0;
+            tempVal2 = (v2 == ONE) ? 1 : 0;
+            retVal = (tempVal1 && tempVal2) ? ONE : ZERO;
+        }
+    }
+    else {
+        tempVal1 = (v1 == ONE) ? 1 : 0;
+        tempVal2 = (v2 == ONE) ? 1 : 0;
+        tempVal3 = (v3 == ONE) ? 1 : 0;
+
+        retVal = (tempVal1 && tempVal2 && tempVal3) ? ONE : ZERO;
+    }
+
+    return retVal;
+}
+
+digiVal Operation_OR(digiVal v1, digiVal v2, digiVal v3) {
+    digiVal retVal = INDETERMINATE;
+    int validCount = 0;
+    uint16_t tempVal1, tempVal2, tempVal3;
+
+    validCount += (v1 != INDETERMINATE) ? 1 : 0;
+    validCount += (v2 != INDETERMINATE) ? 1 : 0;
+    validCount += (v3 != INDETERMINATE) ? 1 : 0;
+
+    if (validCount < 2)
+        retVal = INDETERMINATE;
+    else if (validCount < 3) {
+        if (v1 == INDETERMINATE) {
+            tempVal2 = (v2 == ONE) ? 1 : 0;
+            tempVal3 = (v3 == ONE) ? 1 : 0;
+            retVal = (tempVal2 || tempVal3) ? ONE : ZERO;
+        }
+        else if (v2 == INDETERMINATE) {
+            tempVal1 = (v1 == ONE) ? 1 : 0;
+            tempVal3 = (v3 == ONE) ? 1 : 0;
+            retVal = (tempVal1 || tempVal3) ? ONE : ZERO;
+        }
+        else {
+            tempVal1 = (v1 == ONE) ? 1 : 0;
+            tempVal2 = (v2 == ONE) ? 1 : 0;
+            retVal = (tempVal1 || tempVal2) ? ONE : ZERO;
+        }
+    }
+    else {
+        tempVal1 = (v1 == ONE) ? 1 : 0;
+        tempVal2 = (v2 == ONE) ? 1 : 0;
+        tempVal3 = (v3 == ONE) ? 1 : 0;
+
+        retVal = (tempVal1 || tempVal2 || tempVal3) ? ONE : ZERO;
+    }
+
+    return retVal;
+}
+
+digiVal Operation_XOR(digiVal v1, digiVal v2, digiVal v3) {
+    digiVal retVal = INDETERMINATE;
+    int validCount = 0;
+
+    validCount += (v1 != INDETERMINATE) ? 1 : 0;
+    validCount += (v2 != INDETERMINATE) ? 1 : 0;
+    validCount += (v3 != INDETERMINATE) ? 1 : 0;
+
+    if (validCount < 2)
+        retVal = INDETERMINATE;
+    else {
+        int oneCount = 0;
+
+        oneCount += (v1 == ONE) ? 1 : 0;
+        oneCount += (v2 == ONE) ? 1 : 0;
+        oneCount += (v2 == ONE) ? 1 : 0;
+
+        retVal = (oneCount == 1) ? ONE : ZERO;
+    }
+
+    return retVal;
+}
+
+digiVal Operation_NOT(digiVal v) {
+    digiVal retVal = INDETERMINATE;
+
+    if (v != INDETERMINATE)
+        retVal = (v == ONE) ? ZERO : ONE;
+
+    return retVal;
+}
+
+/* Returns true if the node is the output node of the passed in gate tile, or false
+ * otherwise */
+int isGateOutput (Node *node, TileState *tile) {
+    return (node == tile->rightNode);
+}
+
+/* Returns the 2nd tile associated with the passed in Node that isn't the passed in
+ * tile, or null if none exists. Passed node must be non-null */
+TileState *getOtherTile(Node *node, TileState *tile) {
+    return (tile == node->tile1) ? node->tile2 : node->tile1;
 }
 
 void insertTile(unsigned int changedTile, TileState *tileStates) {
@@ -501,7 +695,7 @@ void addWIRE_12_3_DOUBLE(TileState *toInsert, TileState *leftTile, TileState *ri
  * Finally, the tile being added is added as either as tile1 or tile2, whichever one is free
  */
 void leftConfig(TileState *toInsert, TileState *leftTile) {
-    Node *assignmentNode;
+    Node **assignmentNode;
 
     if (toInsert->orientation != -1)
         assignmentNode = &(toInsert->leftNode);
@@ -516,13 +710,13 @@ void leftConfig(TileState *toInsert, TileState *leftTile) {
             *assignmentNode = leftTile->rightNode;
 
             if (isActiveType(leftTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
     else {                                                  //flipped orientation
@@ -530,22 +724,22 @@ void leftConfig(TileState *toInsert, TileState *leftTile) {
             *assignmentNode = leftTile->leftNode;
 
             if (isActiveType(leftTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
 
     if (leftTile != 0) {
-        if (assignmentNode->tile1 == 0) {
-            assignmentNode->tile1 = toInsert;
+        if ((*assignmentNode)->tile1 == 0) {
+            (*assignmentNode)->tile1 = toInsert;
         }
         else {
-            assignmentNode->tile2 = toInsert;
+            (*assignmentNode)->tile2 = toInsert;
         }
     }
 }
@@ -567,7 +761,7 @@ void leftConfig(TileState *toInsert, TileState *leftTile) {
  * tile for that node (see graph.h for more information on the source/target tiles).
  */
 void rightConfig(TileState *toInsert, TileState *rightTile) {
-    Node *assignmentNode;
+    Node **assignmentNode;
 
     if (toInsert->orientation != -1)
         assignmentNode = &(toInsert->rightNode);
@@ -581,34 +775,34 @@ void rightConfig(TileState *toInsert, TileState *rightTile) {
         if (rightTile->leftNode != NULL) {
             *assignmentNode = rightTile->leftNode;
             if (isActiveType(rightTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
     else {                                                  //flipped orientation
         if (rightTile->rightNode != NULL) {
             *assignmentNode = rightTile->rightNode;
             if (isActiveType(rightTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
 
     if (rightTile != 0) {
-        if (assignmentNode->tile1 == 0)
-            assignmentNode->tile1 = toInsert;
+        if ((*assignmentNode)->tile1 == 0)
+            (*assignmentNode)->tile1 = toInsert;
         else
-            assignmentNode->tile2 = toInsert;
+            (*assignmentNode)->tile2 = toInsert;
     }
 }
 
@@ -629,7 +823,7 @@ void rightConfig(TileState *toInsert, TileState *rightTile) {
  * tile for that node (see graph.h for more information on the source/target tiles).
  */
 void topConfig(TileState *toInsert, TileState *topTile) {
-    Node *assignmentNode;
+    Node **assignmentNode;
 
     if (toInsert->orientation != -1)
         assignmentNode = &(toInsert->topNode);
@@ -644,14 +838,14 @@ void topConfig(TileState *toInsert, TileState *topTile) {
             *assignmentNode = topTile->bottomNode;
 
             if (isActiveType(topTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
 
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
     else {                                                  //flipped orientation
@@ -659,22 +853,22 @@ void topConfig(TileState *toInsert, TileState *topTile) {
             *assignmentNode = topTile->topNode;
 
             if (isActiveType(topTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
 
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
 
     if (topTile != 0) {
-        if (assignmentNode->tile1 == 0)
-            assignmentNode->tile1 = toInsert;
+        if ((*assignmentNode)->tile1 == 0)
+            (*assignmentNode)->tile1 = toInsert;
         else
-            assignmentNode->tile2 = toInsert;
+            (*assignmentNode)->tile2 = toInsert;
     }
 }
 
@@ -695,7 +889,7 @@ void topConfig(TileState *toInsert, TileState *topTile) {
  * tile for that node (see graph.h for more information on the source/target tiles).
  */
 void bottomConfig(TileState *toInsert, TileState *bottomTile) {
-    Node *assignmentNode;
+    Node **assignmentNode;
 
     if (toInsert->orientation != -1)
         assignmentNode = &(toInsert->bottomNode);
@@ -710,14 +904,14 @@ void bottomConfig(TileState *toInsert, TileState *bottomTile) {
             *assignmentNode = bottomTile->topNode;
 
             if (isActiveType(bottomTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
 
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
     else {                                                      //flipped orientation
@@ -725,22 +919,22 @@ void bottomConfig(TileState *toInsert, TileState *bottomTile) {
             *assignmentNode = bottomTile->bottomNode;
 
             if (isActiveType(bottomTile))
-                assignmentNode->currentType = active;
+                (*assignmentNode)->currentType = active;
             else
-                assignmentNode->currentType = passive;
+                (*assignmentNode)->currentType = passive;
 
         }
         else {
             *assignmentNode = newNode();
-            assignmentNode->currentType = undecided;
+            (*assignmentNode)->currentType = undecided;
         }
     }
 
     if (bottomTile != 0) {
-        if (assignmentNode->tile1 == 0)
-            assignmentNode->tile1 = toInsert;
+        if ((*assignmentNode)->tile1 == 0)
+            (*assignmentNode)->tile1 = toInsert;
         else
-            assignmentNode->tile2 = toInsert;
+            (*assignmentNode)->tile2 = toInsert;
     }
 }
 

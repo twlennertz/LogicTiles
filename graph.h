@@ -3,8 +3,6 @@
 
 typedef enum {active, passive, undecided} nodeType;
 
-typedef enum {ZERO, ONE, INDETERMINATE} digiVal;
-
 typedef struct Node {
     /* Two tiles the node is bridging */
     TileState *tile1;
@@ -22,6 +20,16 @@ typedef struct Node {
 
     struct Node *next;                 //for use in the free list
 } Node;
+
+digiVal getNodeValue(Node *currNode, TileState *currTile);
+
+digiVal Operation_AND(digiVal v1, digiVal v2, digiVal v3);
+digiVal Operation_OR(digiVal v1, digiVal v2, digiVal v3);
+digiVal Operation_XOR(digiVal v1, digiVal v2, digiVal v3);
+digiVal Operation_NOT(digiVal v);
+
+int isGateOutput (Node *node, TileState *tile);
+TileState *getOtherTile(Node *node, TileState *tile);
 
 void insertTile(unsigned int changedTile, TileState *tileStates);
 void initNodes();

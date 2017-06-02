@@ -12,6 +12,12 @@
 #include "graph.h"
 #include <stdint.h>
 
+/* Current Values of the Source Blocks */
+digiVal currSourceA = INDETERMINATE;
+digiVal currSourceB = INDETERMINATE;
+digiVal currSourceC = INDETERMINATE;
+digiVal currSourceD = INDETERMINATE;
+
 /* Holds last read value of ADC (from readTileMag()) */
 static volatile uint16_t lastReadADCValue = 0;
 

@@ -40,6 +40,9 @@
 /* The various states of the main loop state machine */
 typedef enum{IDLE_POLL, CMD_PARSE, UPDATE_CKT} state;
 
+/* Internal representation of digital values */
+typedef enum {ZERO, ONE, INDETERMINATE} digiVal;
+
 /* Specific Pins used for ADC, Tile Muxing, and Magnet Muxing */
 #define ADC1_PIN 0x06 //Port 1, Pin 5 (A5)
 
@@ -59,6 +62,12 @@ typedef enum{IDLE_POLL, CMD_PARSE, UPDATE_CKT} state;
 
 /* Error Codes */
 #define BAD_CMD 1
+
+/* Current Values of the Source Tiles (set by commands) */
+extern digiVal currSourceA;
+extern digiVal currSourceB;
+extern digiVal currSourceC;
+extern digiVal currSourceD;
 
 /* function declarations */
 void init();
