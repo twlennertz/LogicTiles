@@ -93,6 +93,7 @@ int main(void) {
 
         case UPDATE_CKT:
             __disable_interrupt();
+            currentState = IDLE_POLL;
             //currentState = updateCkt();
             __enable_interrupt();
 
@@ -118,18 +119,18 @@ int main(void) {
  * next state. */
 state idlePoll() {
     int changedTile;
-
     state nextState = IDLE_POLL;
 
     if (rxPending) {
-
+#ifdef _DEBUG_ON
         uPrint("\r\nGoing to CMD_PARSE");
-        rxPending = 0;
+#endif
 
+        rxPending = 0;
         nextState = CMD_PARSE;
     }
     else if ((changedTile = pollTiles(tileStates)) > 0) {
-        __delay_cycles(10000);
+        __delay_cycles(150000);
 
         updateTile(changedTile);
         insertTile(changedTile, tileStates);
@@ -442,7 +443,6 @@ void initADC() {
     ADC12CTL2 |= ADC12RES_2;                // 12-bit conversion results
     ADC12MCTL0 |= ADC12INCH_5;              // A1 ADC input select; Vref=AVCC
     ADC12IER0 |= ADC12IE0;                  // Enable ADC conv complete interrupt
-
 }
 
 /*
@@ -502,9 +502,11 @@ magcode readTileMag() {
     __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
     __no_operation();                       // For debugger
 
+#ifdef _DEBUG_ON
     uPrint("ADC VAL: ");
     printADC(lastReadADCValue);
-    uPrint("\n\r");
+    uPrint("\n")
+#endif
 
     if (lastReadADCValue < U_MIN) {
         if (lastReadADCValue < S2_MIN)
