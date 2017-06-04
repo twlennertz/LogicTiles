@@ -14,7 +14,10 @@
 #include <string.h>
 
 /* Uncomment in to put in debugging mode, which prints a lot of status stuff as it happens */
-#define _DEBUG_ON
+//#define _DEBUG_ON
+
+/* Uncomment for massive runtime dump of every ADC read (for determining magnet value ranges */
+//#define _ADC_DUMP
 
 /* Current Values of the Source Blocks */
 digiVal currSourceA = ZERO;
@@ -69,7 +72,7 @@ int main(void) {
 
     uPrint("\r\nLogic Tiles Version 0.1");
     printCmds();
-    uPrint("\r\n>: ");
+    uPrint(">: ");
 
     /* Main state machine loop */
     state currentState = IDLE_POLL;
@@ -96,18 +99,11 @@ int main(void) {
             currentState = IDLE_POLL;
             //currentState = updateCkt();
             __enable_interrupt();
+            break;
 
         default:
             break;
         }
-
-        ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
-
-        //__bis_SR_register(LPM0_bits | GIE);     // LPM0,
-        __no_operation();                       // For debugger
-
-
-
     }
 
     return 0;
@@ -123,14 +119,20 @@ state idlePoll() {
 
     if (rxPending) {
 #ifdef _DEBUG_ON
-        uPrint("\r\nGoing to CMD_PARSE");
+        uPrint("\r\nGoing to CMD_PARSE\r\n");
 #endif
 
         rxPending = 0;
         nextState = CMD_PARSE;
     }
-    else if ((changedTile = pollTiles(tileStates)) > 0) {
-        __delay_cycles(150000);
+    else if ((changedTile = pollTiles(tileStates)) >= 0) {
+        __delay_cycles(1000000);
+
+#ifdef _DEBUG_ON
+        char tempBuff[50];
+        sprintf(tempBuff, "Tile Change : %d\r\n", changedTile);
+        uPrint(tempBuff);
+#endif
 
         updateTile(changedTile);
         insertTile(changedTile, tileStates);
@@ -145,9 +147,9 @@ state cmdParse() {
     char* bufPtr = uBuff;
 
 #ifdef _DEBUG_ON
-    uPrint("\n Read: ");
+    uPrint("\r\nRead: ");
     uPrint(uBuff);
-    uPrint("\n");
+    uPrint("\r\n");
 #endif
 
     if (!strncmp(bufPtr, "set", 3)) {
@@ -166,6 +168,7 @@ state cmdParse() {
     }
 
     uBuff[0] = '\0';
+    uPrint(">: ");
 
     return IDLE_POLL;
 }
@@ -257,23 +260,23 @@ void printTiles() {
             break;
         }
 
-        sprintf(buffer2, "%s%s\n", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "");
+        sprintf(buffer2, "%s%s\r\n", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "");
         uPrint(buffer2);
     }
 }
 
 void printProbes() {
     if (currProbeATile && currProbeANode) {
-        uPrint("\nProbe A: ");
+        uPrint("Probe A: ");
         switch (getNodeValue(currProbeANode, currProbeATile)) {
         case ONE:
-            uPrint("1\n");
+            uPrint("1\r\n");
             break;
         case ZERO:
-            uPrint("0\n");
+            uPrint("0\r\n");
             break;
         case INDETERMINATE:
-            uPrint("Indeterminate -- poorly formed circuit\n");
+            uPrint("Indeterminate -- poorly formed circuit\r\n");
             break;
         default:
             break;
@@ -285,18 +288,18 @@ void setSource(char source) {
     switch (source) {
     case 'a':
     case 'A':
-        uPrint("\nSource A set.\n");
+        uPrint("Source A set.\r\n");
         currSourceA = ONE;
         break;
 
     case 'b':
     case 'B':
-        uPrint("\nSource B set.\n");
+        uPrint("Source B set.\r\n");
         currSourceB = ONE;
         break;
 
     default:
-        uPrint("\nNo such source to set.\n");
+        uPrint("No such source to set.\r\n");
         break;
     }
 }
@@ -305,29 +308,29 @@ void clearSource(char source) {
     switch (source) {
     case 'a':
     case 'A':
-        uPrint("\nSource A cleared.\n");
+        uPrint("Source A cleared.\r\n");
         currSourceA = ZERO;
         break;
 
     case 'b':
     case 'B':
-        uPrint("\nSource B cleared.\n");
+        uPrint("Source B cleared.\r\n");
         currSourceB = ZERO;
         break;
 
     default:
-        uPrint("\nNo such source to clear.\n");
+        uPrint("No such source to clear.\r\n");
         break;
     }
 }
 
 /* Moves char *pointer to next token (after whitespace) in string */
 void nextToken(char *tok) {
-    while(*tok && *tok != ' ' && *tok != '\n')
+    while(*tok && *tok != ' ' && *tok != '\n' && *tok != '\r')
         tok++;
 
     while (*tok) {
-        if (*tok == ' ' || *tok == '\n')
+        if (*tok == ' ' || *tok == '\n' || *tok != '\r')
             tok++;
         else
             break;
@@ -336,7 +339,7 @@ void nextToken(char *tok) {
     return tok;
 }
 
-void uPrint(char * message) {
+void uPrint(char *message) {
 
     while(*message) {
         while(!(UCA0IFG&UCTXIFG));
@@ -346,7 +349,6 @@ void uPrint(char * message) {
 }
 
 void printADC(uint16_t value) {
-
     char buffer[4];
     sprintf(buffer, "%x", value);
 
@@ -354,12 +356,12 @@ void printADC(uint16_t value) {
 }
 
 void printCmds() {
-
     uPrint("\r\nCommands:");
-    uPrint("\r\n1: Print Commands");
-    uPrint("\r\n2: Change Inputs");
-    uPrint("\r\n3: I dunno, something else?");
-    uPrint("\n");
+    uPrint("\r\nprintTiles: list all tiles and their known states");
+    uPrint("\r\nset <source-letter>: Set the given source to HIGH (1)");
+    uPrint("\r\nclear: Clear the given source to LOW (0)");
+    uPrint("\r\nrun: Print the values of all the probes on the board");
+    uPrint("\r\n");
 }
 
 void reportError(int errorCode) {
@@ -502,10 +504,10 @@ magcode readTileMag() {
     __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
     __no_operation();                       // For debugger
 
-#ifdef _DEBUG_ON
+#ifdef _ADC_DUMP
     uPrint("ADC VAL: ");
     printADC(lastReadADCValue);
-    uPrint("\n")
+    uPrint("\r\n");
 #endif
 
     if (lastReadADCValue < U_MIN) {

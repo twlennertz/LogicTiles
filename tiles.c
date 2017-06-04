@@ -22,9 +22,6 @@
 /* Keeps track of current module selected */
 int selectedModule = 0;
 
-/* Keeps track of the currently selected tile */
-static int currSelTile = 0;
-
 /* Returns the first tile number detected as being changed with regard to the passed in,
  * current TileState structure, or a negative number if no changes detected. tileStates
  * must be NUM_TILES in size (one structure for each tile on board */
@@ -33,7 +30,7 @@ int pollTiles(TileState *tileStates) {
     selectMag(M2); //Magnet 2 is baseline detection magnet
 
     int i = 0;
-    for(i = 0; i < NUM_TILES; i++) {
+    //for(i = 0; i < NUM_TILES; i++) {
         selectBoardTile(i);
         magcode currCode = readTileMag();
 
@@ -41,9 +38,9 @@ int pollTiles(TileState *tileStates) {
         if (tileStates[i].mag2 != currCode) {
             tileStates[i].mag2 = currCode;
             returnTileNum = i;
-            break;
+            //break;
         }
-    }
+    //}
 
     return returnTileNum;
 }
@@ -58,23 +55,19 @@ int pollTiles(TileState *tileStates) {
 void selectBoardTile(int tileNum) {
     int rowNum, colNum, moduleNum, moduleTileNum;
 
-    if (tileNum != currSelTile) {
-        currSelTile = tileNum;
+    /* Determine the tile row and column #s. */
+    rowNum = tileNum / TILE_WIDTH;
+    colNum = tileNum - (rowNum * TILE_WIDTH);
 
-        /* Determine the tile row and column #s. */
-        rowNum = tileNum / TILE_WIDTH;
-        colNum = tileNum - (rowNum * TILE_WIDTH);
+    /* Determine the Module number and set the MUX to the output of that module
+     * Modules are numbered in the same type of ordering as tiles (left -> right, top->bottom) */
+    moduleNum = ((rowNum / 2) * MODULE_COLUMNS) + (colNum / 4);
+    selectModule(moduleNum);
 
-        /* Determine the Module number and set the MUX to the output of that module
-         * Modules are numbered in the same type of ordering as tiles (left -> right, top->bottom) */
-        moduleNum = ((rowNum / 2) * MODULE_COLUMNS) + (colNum / 4);
-        selectModule(moduleNum);
-
-        /* Determine which of the tiles on the particular selected modules needs to be selected for a read,
-         * and select it with the selectModuleTile muxing function */
-        moduleTileNum = ((rowNum % 2) * 4) + (colNum % 4);
-        selectModuleTile(moduleTileNum);
-    }
+    /* Determine which of the tiles on the particular selected modules needs to be selected for a read,
+     * and select it with the selectModuleTile muxing function */
+    moduleTileNum = ((rowNum % 2) * 4) + (colNum % 4);
+    selectModuleTile(moduleTileNum);
 }
 
 /* Sets the correct GPIO pins to MUX out the passed magnet number for whatever tile is currently selected.
