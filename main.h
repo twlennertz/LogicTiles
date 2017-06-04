@@ -99,7 +99,7 @@ void printTiles();
 void printProbes();
 void setSource(char source);
 void clearSource(char source);
-void nextToken(char *tok);
+char *nextToken(char *tok);
 
 void updateTile(unsigned int tileNum);
 magcode readTileMag();
