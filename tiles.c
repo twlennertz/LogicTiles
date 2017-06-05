@@ -77,11 +77,11 @@ void selectMag(magnet mag) {
     switch (mag) {
     case M0:
         P2OUT &= ~MAG_CTRL;
-        P2OUT &= MAG_SEL0;
+        P2OUT |= MAG_SEL0;
         break;
     case M1:
         P2OUT &= ~MAG_CTRL;
-        P2OUT &= MAG_SEL1;
+        P2OUT |= MAG_SEL1;
         break;
     case M2:
         P2OUT |= MAG_SEL0 | MAG_SEL1;
@@ -89,6 +89,8 @@ void selectMag(magnet mag) {
     default:
         break;
     }
+
+    __delay_cycles(100);
 }
 
 /* Sets the correct MUX selection pins so that all modules have their outputs set for modTileNum.
