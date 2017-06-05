@@ -129,10 +129,6 @@ state idlePoll() {
     state nextState = IDLE_POLL;
 
     if (rxPending) {
-#ifdef _DEBUG_ON
-        uPrint("\r\nGoing to CMD_PARSE\r\n");
-#endif
-
         rxPending = 0;
         nextState = CMD_PARSE;
     }
@@ -163,6 +159,9 @@ state cmdParse() {
     uPrint("\r\n");
 #endif
 
+    if (*tok && (*tok == ' ' || *tok == '\n' || *tok == '\r'))
+        bufPtr = nextToken(bufPtr);
+
     if (!strncmp(bufPtr, "set", 3)) {
        bufPtr = nextToken(bufPtr);
        setSource(*bufPtr);
@@ -190,7 +189,7 @@ void printTiles() {
     uPrint("\r\n");
 
     for (i = 0; i < NUM_TILES; i++) {
-        sprintf(buffer, "Tile %d: ", i);
+        sprintf(buffer, "\tTile %d:\t", i);
         uPrint(buffer);
 
         char *typeStr;
@@ -279,7 +278,7 @@ void printProbes() {
     uPrint("\r\n");
 
     if (currProbeATile && currProbeANode) {
-        uPrint("Probe A: ");
+        uPrint("\tProbe A:");
         switch (getNodeValue(currProbeANode, currProbeATile)) {
         case ONE:
             uPrint("1\r\n");
@@ -308,18 +307,18 @@ void setSource(char source) {
     switch (source) {
     case 'a':
     case 'A':
-        uPrint("Source A set.\r\n");
+        uPrint("\tSource A set.\r\n");
         currSourceA = ONE;
         break;
 
     case 'b':
     case 'B':
-        uPrint("Source B set.\r\n");
+        uPrint("\tSource B set.\r\n");
         currSourceB = ONE;
         break;
 
     default:
-        uPrint("No such source to set.\r\n");
+        uPrint("\tNo such source to set.\r\n");
         break;
     }
 }
@@ -330,18 +329,18 @@ void clearSource(char source) {
     switch (source) {
     case 'a':
     case 'A':
-        uPrint("Source A cleared.\r\n");
+        uPrint("\tSource A cleared.\r\n");
         currSourceA = ZERO;
         break;
 
     case 'b':
     case 'B':
-        uPrint("Source B cleared.\r\n");
+        uPrint("\tSource B cleared.\r\n");
         currSourceB = ZERO;
         break;
 
     default:
-        uPrint("No such source to clear.\r\n");
+        uPrint("\tNo such source to clear.\r\n");
         break;
     }
 }
@@ -561,8 +560,8 @@ void initTileState() {
 magcode readTileMag() {
     magcode returnCode = U;
 
+    adcRead = 0;
     ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
-
     while (!adcRead);
 
     //__bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit

@@ -42,6 +42,34 @@ int pollTiles(TileState *tileStates) {
         }
     //}
 
+    selectMag(M0); //Magnet 2 is baseline detection magnet
+    i = 0;
+    //for(i = 0; i < NUM_TILES; i++) {
+        selectBoardTile(i);
+        magcode currCode = readTileMag();
+
+        /* check if read code matches what is currently known */
+        if (tileStates[i].mag0 != currCode) {
+            tileStates[i].mag0 = currCode;
+            returnTileNum = i;
+            //break;
+        }
+    //}
+
+    selectMag(M1); //Magnet 2 is baseline detection magnet
+    i = 0;
+    //for(i = 0; i < NUM_TILES; i++) {
+        selectBoardTile(i);
+        magcode currCode = readTileMag();
+
+        /* check if read code matches what is currently known */
+        if (tileStates[i].mag1 != currCode) {
+            tileStates[i].mag1 = currCode;
+            returnTileNum = i;
+            //break;
+        }
+    //}
+
     return returnTileNum;
 }
 
@@ -90,7 +118,7 @@ void selectMag(magnet mag) {
         break;
     }
 
-    __delay_cycles(100);
+    //__delay_cycles(200);
 }
 
 /* Sets the correct MUX selection pins so that all modules have their outputs set for modTileNum.
