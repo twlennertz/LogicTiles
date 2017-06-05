@@ -39,12 +39,24 @@ TileState *currProbeDTile = 0;
 /* Holds last read value of ADC (from readTileMag()) */
 static volatile uint16_t lastReadADCValue = 0;
 
-/*Serial data structures */
-char uBuff[51];
+/* RX receive buffer */
+#define RX_BUFFER_SIZE 300
+static char uBuff[RX_BUFFER_SIZE + 1];
 static volatile unsigned int buffIndex = 0;
+static char lastRXChar;
+
+/* TX ring buffer */
+#define PRINT_BUFFER_SIZE 301
+static char printBuff[PRINT_BUFFER_SIZE];
+static unsigned int ringNdx = 0;
+static unsigned int printNdx = 0;
+static unsigned int numPendingTX = 0;
+
+#define PROMPT_STRING ">: "
 
 /*Flags*/
 static volatile char rxPending = 0;
+static volatile char adcRead = 0;
 
 /* The currently known states of the tiles on the board */
 static TileState tileStates[NUM_TILES];
@@ -69,6 +81,7 @@ void addTile(int tile) {
 
 int main(void) {
     init();
+    __enable_interrupt();
 
     uPrint("\r\nLogic Tiles Version 0.1");
     printCmds();
@@ -76,29 +89,27 @@ int main(void) {
 
     /* Main state machine loop */
     state currentState = IDLE_POLL;
-    __enable_interrupt();
-
     for(;;) {
 
         switch (currentState) {
 
         case IDLE_POLL:
-            __disable_interrupt();
+            //__disable_interrupt();
             currentState = idlePoll();
-            __enable_interrupt();
+            //__enable_interrupt();
             break;
 
         case CMD_PARSE:
-            __disable_interrupt();
+            //__disable_interrupt();
             currentState = cmdParse();
-            __enable_interrupt();
+           // __enable_interrupt();
             break;
 
         case UPDATE_CKT:
-            __disable_interrupt();
+            //__disable_interrupt();
             currentState = IDLE_POLL;
             //currentState = updateCkt();
-            __enable_interrupt();
+            //__enable_interrupt();
             break;
 
         default:
@@ -126,16 +137,16 @@ state idlePoll() {
         nextState = CMD_PARSE;
     }
     else if ((changedTile = pollTiles(tileStates)) >= 0) {
-        __delay_cycles(1000000);
+        __delay_cycles(16000000);
 
 #ifdef _DEBUG_ON
         char tempBuff[50];
-        sprintf(tempBuff, "Tile Change : %d\r\n", changedTile);
+        sprintf(tempBuff, "\r\nTile Change : %d\r\n>: ", changedTile);
         uPrint(tempBuff);
 #endif
 
         updateTile(changedTile);
-        insertTile(changedTile, tileStates);
+        //insertTile(changedTile, tileStates);
 
         //nextState = UPDATE_CKT;
     }
@@ -153,12 +164,12 @@ state cmdParse() {
 #endif
 
     if (!strncmp(bufPtr, "set", 3)) {
-       nextToken(bufPtr);
+       bufPtr = nextToken(bufPtr);
        setSource(*bufPtr);
     }
     else if (!strncmp(bufPtr, "clear", 4)) {
-        nextToken(bufPtr);
-        setSource(*bufPtr);
+        bufPtr = nextToken(bufPtr);
+        clearSource(*bufPtr);
     }
     else if (!strncmp(bufPtr, "printTiles", 10)) {
         printTiles();
@@ -167,20 +178,19 @@ state cmdParse() {
         printProbes();
     }
 
-    uBuff[0] = '\0';
-    uPrint(">: ");
+    uPrint("\r\n>: ");
 
     return IDLE_POLL;
 }
 
 void printTiles() {
     unsigned int i;
+    char buffer[50];
+
+    uPrint("\r\n");
 
     for (i = 0; i < NUM_TILES; i++) {
-        char buffer[50];
-        char buffer2[50];
-
-        sprintf(buffer, "tile %d: ", i);
+        sprintf(buffer, "Tile %d: ", i);
         uPrint(buffer);
 
         char *typeStr;
@@ -260,12 +270,14 @@ void printTiles() {
             break;
         }
 
-        sprintf(buffer2, "%s%s\r\n", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "");
-        uPrint(buffer2);
+        sprintf(buffer, "%s%s\r\n", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "");
+        uPrint(buffer);
     }
 }
 
 void printProbes() {
+    uPrint("\r\n");
+
     if (currProbeATile && currProbeANode) {
         uPrint("Probe A: ");
         switch (getNodeValue(currProbeANode, currProbeATile)) {
@@ -285,6 +297,14 @@ void printProbes() {
 }
 
 void setSource(char source) {
+#ifdef _DEBUG_ON
+    char tempBuf[50];
+    sprintf(tempBuf, "\r\nSource to set: %c", source);
+    uPrint(tempBuf);
+#endif
+
+    uPrint("\r\n");
+
     switch (source) {
     case 'a':
     case 'A':
@@ -305,6 +325,8 @@ void setSource(char source) {
 }
 
 void clearSource(char source) {
+    uPrint("\r\n");
+
     switch (source) {
     case 'a':
     case 'A':
@@ -324,13 +346,13 @@ void clearSource(char source) {
     }
 }
 
-/* Moves char *pointer to next token (after whitespace) in string */
-void nextToken(char *tok) {
+/* Moves char pointer to next token (after whitespace) in string, returning tht location (or null) */
+char *nextToken(char *tok) {
     while(*tok && *tok != ' ' && *tok != '\n' && *tok != '\r')
         tok++;
 
     while (*tok) {
-        if (*tok == ' ' || *tok == '\n' || *tok != '\r')
+        if (*tok == ' ' || *tok == '\n' || *tok == '\r')
             tok++;
         else
             break;
@@ -339,13 +361,44 @@ void nextToken(char *tok) {
     return tok;
 }
 
+/* Copies the message into the ring buffer, potentially overwriting data that has not
+ * yet been TXed if message is particularly long or buffer size too small. Message should be
+ * null-terminated */
 void uPrint(char *message) {
+    int messageLen = strlen(message);
+    int i;
 
-    while(*message) {
-        while(!(UCA0IFG&UCTXIFG));
-        UCA0TXBUF = *message;
-        message++;
+    for (i = 0; i < messageLen; i++) {
+        printBuff[ringNdx] = message[i];
+
+        ringNdx++;
+
+        if (ringNdx == PRINT_BUFFER_SIZE)
+            ringNdx = 0;
     }
+
+    if (numPendingTX == 0) {
+        numPendingTX += messageLen;
+        UCA0IFG |= UCTXIFG;             //Trigger TX interrupt if send isn't already happening
+    }
+    else
+        numPendingTX += messageLen;
+}
+
+/* Adds a single char to the TX ring buffer */
+void uPrintChar(char c) {
+    printBuff[ringNdx] = c;
+
+    ringNdx++;
+    if (ringNdx == PRINT_BUFFER_SIZE)
+        ringNdx = 0;
+
+    if (numPendingTX == 0) {
+        numPendingTX++;
+        UCA0IFG |= UCTXIFG;             //Trigger TX interrupt if send isn't already happening
+    }
+    else
+        numPendingTX++;
 }
 
 void printADC(uint16_t value) {
@@ -357,11 +410,15 @@ void printADC(uint16_t value) {
 
 void printCmds() {
     uPrint("\r\nCommands:");
-    uPrint("\r\nprintTiles: list all tiles and their known states");
-    uPrint("\r\nset <source-letter>: Set the given source to HIGH (1)");
-    uPrint("\r\nclear: Clear the given source to LOW (0)");
-    uPrint("\r\nrun: Print the values of all the probes on the board");
+    uPrint("\r\n\tprintTiles:\t\tList all tiles and their known states");
+    uPrint("\r\n\tset <source-letter>:\tSet the given source to HIGH (1)");
+    uPrint("\r\n\tclear <source-letter>:\tClear the given source to LOW (0)");
+    uPrint("\r\n\trun:\t\t\tPrint the values of all the probes on the board");
     uPrint("\r\n");
+}
+
+void printPrompt() {
+    uPrint(PROMPT_STRING);
 }
 
 void reportError(int errorCode) {
@@ -369,14 +426,16 @@ void reportError(int errorCode) {
     switch (errorCode) {
 
         case BAD_CMD:
-            uPrint("\r\nERROR: INPUT ERROR");
-            uPrint("\r\n>:");
+            uPrint("\r\nERROR: INPUT ERROR (preceeding input was lost) ");
+
             break;
 
         default:
             break;
 
     }
+
+    uPrint("\r\n>: ");
 }
 
 /* Reads all of the magnets of a passed in board tile number, determining its type
@@ -475,6 +534,8 @@ void initUSART() {
     UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
     UCA0CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
     UCA0IE |= UCRXIE;                       // Enable USCI_A0 RX interrupt
+
+    UCA0IE |= UCTXIE;                       // Enable USCI_A0 TX interrupt
 }
 
 /* Initializes the known states of each tile to U (no magnet present) */
@@ -501,13 +562,17 @@ magcode readTileMag() {
     magcode returnCode = U;
 
     ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
-    __bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
-    __no_operation();                       // For debugger
+
+    while (!adcRead);
+
+    //__bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
+    //__no_operation();                       // For debugger
 
 #ifdef _ADC_DUMP
     uPrint("ADC VAL: ");
     printADC(lastReadADCValue);
     uPrint("\r\n");
+    __delay_cycles(200000);
 #endif
 
     if (lastReadADCValue < U_MIN) {
@@ -522,6 +587,8 @@ magcode readTileMag() {
         else
             returnCode = N2;
     }
+
+    adcRead = 0;
 
     return returnCode;
 }
@@ -548,6 +615,7 @@ void __attribute__ ((interrupt(ADC12_B_VECTOR))) ADC12_ISR (void)
         case ADC12IV__ADC12INIFG:  break;   // Vector 10:  ADC12BIN
         case ADC12IV__ADC12IFG0:            // Vector 12:  ADC12MEM0 Interrupt
             lastReadADCValue = ADC12MEM0;
+            adcRead = 1;
 
             // Exit from LPM0 and continue executing main
             __bic_SR_register_on_exit(LPM0_bits);
@@ -605,21 +673,21 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
+            lastRXChar = UCA0RXBUF;
 
-            if ((buffIndex == 50)) {
+            if ((buffIndex == RX_BUFFER_SIZE)) {
                 reportError(BAD_CMD);
                 buffIndex = 0;
             }
 
-            if (UCA0RXBUF != '\r') {
-                if (UCA0RXBUF == '\bs' && buffIndex > 0) {
+            if (lastRXChar != '\r') {
+                if (lastRXChar == '\bs' && buffIndex > 0)
                     buffIndex--;
-                }
-                else
-                    uBuff[buffIndex++] = UCA0RXBUF;
+                else if (!rxPending)
+                    uBuff[buffIndex++] = lastRXChar;
 
-                while(!(UCA0IFG&UCTXIFG));
-                UCA0TXBUF = UCA0RXBUF;
+                if (!rxPending)
+                    uPrintChar(lastRXChar);
             }
             else {
                 uBuff[buffIndex] = '\0';
@@ -628,7 +696,21 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
             }
 
             break;
-        case USCI_UART_UCTXIFG: break;
+
+        case USCI_UART_UCTXIFG:
+            UCA0IFG &= ~UCTXIFG;
+
+            if (numPendingTX > 0) {
+                UCA0TXBUF = printBuff[printNdx++];
+
+                if (printNdx == PRINT_BUFFER_SIZE)
+                    printNdx = 0;
+
+                numPendingTX--;
+            }
+
+            break;
+
         case USCI_UART_UCSTTIFG: break;
         case USCI_UART_UCTXCPTIFG: break;
         default: break;
