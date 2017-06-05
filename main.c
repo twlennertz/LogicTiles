@@ -133,7 +133,7 @@ state idlePoll() {
         nextState = CMD_PARSE;
     }
     else if ((changedTile = pollTiles(tileStates)) >= 0) {
-        __delay_cycles(16000000);
+        __delay_cycles(8000000);
 
 #ifdef _DEBUG_ON
         char tempBuff[50];
@@ -159,7 +159,7 @@ state cmdParse() {
     uPrint("\r\n");
 #endif
 
-    if (*tok && (*tok == ' ' || *tok == '\n' || *tok == '\r'))
+    if (*bufPtr && (*bufPtr == ' ' || *bufPtr == '\n' || *bufPtr == '\r'))
         bufPtr = nextToken(bufPtr);
 
     if (!strncmp(bufPtr, "set", 3)) {

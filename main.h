@@ -34,8 +34,8 @@
  * that range further from U than N2 and S2 */
 #define U_MIN 0x4A0     //Min of the no-magnet-detected range
 #define U_MAX 0x500     //Max of the no-magnet-detected range
-#define S2_MIN 0x430    //Min of the "weak" south magnet range.
-#define N2_MAX 0x580    //Max of the "weak" north magnet range
+#define S2_MIN 0x410    //Min of the "weak" south magnet range.
+#define N2_MAX 0x5A0    //Max of the "weak" north magnet range
 
 /* The various states of the main loop state machine */
 typedef enum{IDLE_POLL, CMD_PARSE, UPDATE_CKT} state;
