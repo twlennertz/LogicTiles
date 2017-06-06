@@ -31,7 +31,7 @@ int pollTiles(TileState *tileStates) {
     selectMag(M2); //Magnet 2 is baseline detection magnet
 
     int i = 0;
-    //for(i = 0; i < NUM_TILES; i++) {
+    for(i = 0; i < NUM_TILES; i++) {
         selectBoardTile(i);
         currCode = readTileMag();
 
@@ -39,9 +39,9 @@ int pollTiles(TileState *tileStates) {
         if (tileStates[i].mag2 != currCode) {
             tileStates[i].mag2 = currCode;
             returnTileNum = i;
-            //break;
+            break;
         }
-    //}
+    }
 /*
     selectMag(M0); //Magnet 2 is baseline detection magnet
     i = 0;

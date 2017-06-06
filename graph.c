@@ -868,12 +868,12 @@ void removeTile(TileState *toRemove, TileState *leftTile, TileState *rightTile, 
         currProbeBTile = 0;
         currProbeBNode = 0;
     } else if (currProbeCTile == toRemove) {
-        currProbeBTile = 0;
-        currProbeBNode = 0;
+        currProbeCTile = 0;
+        currProbeCNode = 0;
     }
     else if (currProbeDTile == toRemove) {
-        currProbeBTile = 0;
-        currProbeBNode = 0;
+        currProbeDTile = 0;
+        currProbeDNode = 0;
     }
 
     if (toRemove->rightNode != NULL) {

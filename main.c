@@ -159,6 +159,8 @@ state cmdParse() {
     uPrint("\r\n");
 #endif
 
+    uPrint("\r\n");
+
     if (*bufPtr && (*bufPtr == ' ' || *bufPtr == '\n' || *bufPtr == '\r'))
         bufPtr = nextToken(bufPtr);
 
@@ -365,7 +367,7 @@ char *nextToken(char *tok) {
  * null-terminated */
 void uPrint(char *message) {
     int messageLen = strlen(message);
-    int i;
+    unsigned int i;
 
     for (i = 0; i < messageLen; i++) {
         printBuff[ringNdx] = message[i];
@@ -680,13 +682,15 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
             }
 
             if (lastRXChar != '\r') {
-                if (lastRXChar == '\bs' && buffIndex > 0)
+                if (lastRXChar == '\bs' && buffIndex > 0) {
                     buffIndex--;
-                else if (!rxPending)
-                    uBuff[buffIndex++] = lastRXChar;
+                }
+                else if (!rxPending) {
+                    if (lastRXChar != '\bs')
+                        uBuff[buffIndex++] = lastRXChar;
 
-                if (!rxPending)
                     uPrintChar(lastRXChar);
+                }
             }
             else {
                 uBuff[buffIndex] = '\0';
