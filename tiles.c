@@ -26,51 +26,79 @@ int selectedModule = 0;
  * current TileState structure, or a negative number if no changes detected. tileStates
  * must be NUM_TILES in size (one structure for each tile on board */
 int pollTiles(TileState *tileStates) {
-    magcode currCode;
+    static unsigned int currTileNum = 0;
     int returnTileNum = -1;
-    selectMag(M2); //Magnet 2 is baseline detection magnet
+    magcode currCode;
 
+    selectBoardTile(currTileNum);
+
+    selectMag(M2); //Magnet 2 is baseline detection magnet
+    currCode = readTileMag();
+
+    if (tileStates[currTileNum].mag2 != currCode) {
+        tileStates[currTileNum].mag2 = currCode;
+        returnTileNum = currTileNum;
+    }
+
+    selectMag(M1);
+    currCode = readTileMag();
+
+    if (tileStates[currTileNum].mag1 != currCode) {
+        tileStates[currTileNum].mag1 = currCode;
+        returnTileNum = currTileNum;
+    }
+
+    selectMag(M0);
+    currCode = readTileMag();
+
+    if (tileStates[currTileNum].mag0 != currCode) {
+        tileStates[currTileNum].mag0 = currCode;
+        returnTileNum = currTileNum;
+    }
+
+    currTileNum++;
+    if (currTileNum == NUM_TILES)
+        currTileNum = 0;
+
+/*
     int i = 0;
     for(i = 0; i < NUM_TILES; i++) {
         selectBoardTile(i);
         currCode = readTileMag();
 
-        /* check if read code matches what is currently known */
         if (tileStates[i].mag2 != currCode) {
             tileStates[i].mag2 = currCode;
             returnTileNum = i;
             break;
         }
     }
-/*
+
     selectMag(M0); //Magnet 2 is baseline detection magnet
     i = 0;
-    //for(i = 0; i < NUM_TILES; i++) {
+    for(i = 0; i < NUM_TILES; i++) {
         selectBoardTile(i);
         currCode = readTileMag();
 
         if (tileStates[i].mag0 != currCode) {
             tileStates[i].mag0 = currCode;
             returnTileNum = i;
-            //break;
+            break;
         }
-    //}
+    }
 
     selectMag(M1); //Magnet 2 is baseline detection magnet
     i = 0;
-    //for(i = 0; i < NUM_TILES; i++) {
+    for(i = 0; i < NUM_TILES; i++) {
         selectBoardTile(i);
         currCode = readTileMag();
 
         if (tileStates[i].mag1 != currCode) {
             tileStates[i].mag1 = currCode;
             returnTileNum = i;
-            //break;
+            break;
         }
-    //}
-
-        */
-
+    }
+*/
     return returnTileNum;
 }
 
@@ -266,8 +294,10 @@ void determineType(TileState *tile) {
             break;
         }
     }
-    else
+    else {
+        tile->orientation = 1;
         tile->type = EMPTY;
+    }
 }
 
 int isActiveType(TileState *tile) {

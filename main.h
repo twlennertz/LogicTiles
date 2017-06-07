@@ -32,9 +32,9 @@
  * Note that S2 and N2 correspond to the values closer to the U range, being in
  * the deeper tile holes. N1 and S1 are the shallower tile holes with values
  * that range further from U than N2 and S2 */
-#define U_MIN 0x4D0     //Min of the no-magnet-detected range
-#define U_MAX 0x560     //Max of the no-magnet-detected range
-#define S2_MIN 0x420    //Min of the "weak" south magnet range.
+#define U_MIN 0x4B0     //Min of the no-magnet-detected range
+#define U_MAX 0x52F     //Max of the no-magnet-detected range
+#define S2_MIN 0x410    //Min of the "weak" south magnet range.
 #define N2_MAX 0x5CF    //Max of the "weak" north magnet range
 
 /* The various states of the main loop state machine */
@@ -59,6 +59,10 @@ typedef enum {ZERO, ONE, INDETERMINATE, UNVISITED} digiVal;
 #define MODULE_SEL0 (BIT0);
 #define MODULE_SEL1 (BIT1);
 #define MODULE_SEL2 (BIT2);
+
+/* Number of measurements that is made with the ADC and averaged for a single
+ * magnet read. */
+#define ADC_AVG_COUNT 8
 
 /* Error Codes */
 #define BAD_CMD 1

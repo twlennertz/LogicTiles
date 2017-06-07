@@ -61,24 +61,6 @@ static volatile char adcRead = 0;
 /* The currently known states of the tiles on the board */
 static TileState tileStates[NUM_TILES];
 
-/*
- * Given the current layout of tiles on the board, this
- * function will create the corresponding logic circuit.
- */
-void constructCircuit() {
-
-}
-
-/*
- * Adds a new tile to the list of running tiles.
- * The other sensors of the tile are to be read, resulting
- * into a 3 byte code that identifies a unique tile.
- */
-void addTile(int tile) {
-
-
-}
-
 int main(void) {
     init();
     __enable_interrupt();
@@ -133,7 +115,7 @@ state idlePoll() {
         nextState = CMD_PARSE;
     }
     else if ((changedTile = pollTiles(tileStates)) >= 0) {
-        __delay_cycles(8000000);
+        __delay_cycles(4000000);
 
 #ifdef _DEBUG_ON
         char tempBuff[50];
@@ -561,36 +543,45 @@ void initTileState() {
  * in tiles.c */
 magcode readTileMag() {
     magcode returnCode = U;
+    uint16_t adcAvg, i = 0;
 
-    adcRead = 0;
-    ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
-    while (!adcRead);
+    /* Average some reads together */
+    for (i = 0, adcAvg = 0; i < ADC_AVG_COUNT; i++) {
+        adcRead = 0;
+        ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
+
+        while(!adcRead)
+           ;
+
+        adcAvg = (i == 0) ? lastReadADCValue : (adcAvg + lastReadADCValue);
+    }
+
+    adcAvg /= i;
 
     //__bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
     //__no_operation();                       // For debugger
 
 #ifdef _ADC_DUMP
     uPrint("ADC VAL: ");
-    printADC(lastReadADCValue);
+    printADC(adcAvg);
     uPrint("\r\n");
     __delay_cycles(200000);
 #endif
 
-    if (lastReadADCValue < U_MIN) {
-        if (lastReadADCValue < S2_MIN)
+    if (adcAvg < U_MIN) {
+        if (adcAvg < S2_MIN)
             returnCode = S1;
         else
             returnCode = S2;
     }
-    else if (lastReadADCValue > U_MAX) {
-        if (lastReadADCValue > N2_MAX)
+    else if (adcAvg > U_MAX) {
+        if (adcAvg > N2_MAX)
             returnCode = N1;
         else
             returnCode = N2;
     }
 
     adcRead = 0;
-
     return returnCode;
 }
 
