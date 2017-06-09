@@ -36,8 +36,10 @@ TileState *currProbeBTile = 0;
 TileState *currProbeCTile = 0;
 TileState *currProbeDTile = 0;
 
-/* Holds last read value of ADC (from readTileMag()) */
+/* Holds last read value of ADC for each module's output to an ADC pin */
 static volatile uint16_t lastReadADCValue = 0;
+//static volatile uint16_t lastReadADCValue1 = 0;
+//static volatile uint16_t lastReadADCValue2 = 0;
 
 /* RX receive buffer */
 #define RX_BUFFER_SIZE 300
@@ -46,7 +48,7 @@ static volatile unsigned int buffIndex = 0;
 static char lastRXChar;
 
 /* TX ring buffer */
-#define PRINT_BUFFER_SIZE 301
+#define PRINT_BUFFER_SIZE 1000
 static char printBuff[PRINT_BUFFER_SIZE];
 static unsigned int ringNdx = 0;
 static unsigned int printNdx = 0;
@@ -115,7 +117,7 @@ state idlePoll() {
         nextState = CMD_PARSE;
     }
     else if ((changedTile = pollTiles(tileStates)) >= 0) {
-        __delay_cycles(4000000);
+        __delay_cycles(400000);
 
 #ifdef _DEBUG_ON
         char tempBuff[50];
@@ -124,7 +126,7 @@ state idlePoll() {
 #endif
 
         updateTile(changedTile);
-        //insertTile(changedTile, tileStates);
+        insertTile(changedTile, tileStates);
 
         //nextState = UPDATE_CKT;
     }
@@ -168,15 +170,19 @@ state cmdParse() {
 
 void printTiles() {
     unsigned int i;
-    char buffer[50];
+    char buffer[200];
+    char bigBuff[150];
 
     uPrint("\r\n");
 
     for (i = 0; i < NUM_TILES; i++) {
-        sprintf(buffer, "\tTile %d:\t", i);
+        sprintf(buffer, "\tTile %d\t:\t", i);
         uPrint(buffer);
 
         char *typeStr;
+        int l, r, t, b;
+        l = r = t = b = 0;
+
         switch (tileStates[i].type) {
         case EMPTY:
             typeStr = "EMPTY";
@@ -206,16 +212,16 @@ void printTiles() {
             typeStr = "SOURCE D";
             break;
         case PROBE_A:
-            typeStr = "PROBE A";
+            typeStr = "PROBE 1";
             break;
         case PROBE_B:
-            typeStr = "PROBE B";
+            typeStr = "PROBE 2";
             break;
         case PROBE_C:
-            typeStr = "PROBE C";
+            typeStr = "PROBE 3";
             break;
         case PROBE_D:
-            typeStr = "PROBE D";
+            typeStr = "PROBE 4";
             break;
         case HORIZONTAL:
             typeStr = "HORIZONTAL";
@@ -253,8 +259,26 @@ void printTiles() {
             break;
         }
 
-        sprintf(buffer, "%s%s\r\n", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "");
+        if (tileStates[i].leftNode != NULL)
+            l = tileStates[i].leftNode->id;
+
+        if (tileStates[i].rightNode != NULL)
+            r = tileStates[i].rightNode->id;
+
+        if (tileStates[i].topNode != NULL)
+            t = tileStates[i].topNode->id;
+
+        if (tileStates[i].bottomNode != NULL)
+            b = tileStates[i].bottomNode->id;
+
+        sprintf(bigBuff, "\r\n\t\tl: %d\r\n\t\tr: %d\r\n\t\tt: %d\r\n\t\tb: %d\r\n",
+                l, r, t, b);
+
+
+        sprintf(buffer, "%s%s%s", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "", bigBuff);
         uPrint(buffer);
+
+        __delay_cycles(200000);
     }
 }
 
@@ -262,7 +286,9 @@ void printProbes() {
     uPrint("\r\n");
 
     if (currProbeATile && currProbeANode) {
-        uPrint("\tProbe A:");
+        uPrint("\tProbe 1: ");
+        unvisitAllNodes(tileStates);
+
         switch (getNodeValue(currProbeANode, currProbeATile)) {
         case ONE:
             uPrint("1\r\n");
@@ -276,6 +302,10 @@ void printProbes() {
         default:
             break;
         }
+
+        char buf[30];
+        sprintf(buf, "\t\tProbe Left Node: %d\r\n", currProbeANode->id);
+        uPrint(buf);
     }
 }
 
@@ -478,15 +508,21 @@ void init() {
  */
 void initADC() {
 
-    P1SEL1 |= BIT5;                         // Configure P1.5 for ADC
-    P1SEL0 |= BIT5;
+    P1SEL1 |= BIT5 | BIT4;                          // Configure P1.5 & P1.4 for ADC
+    P1SEL0 |= BIT5 | BIT4;
+
+    P3SEL1 |= BIT3;                                 // Configure P3.3 for ADC
+    P3SEL0 |= BIT3;
 
     // Configure ADC12
-    ADC12CTL0 = ADC12SHT0_2 | ADC12ON;      // Sampling time, S&H=16, ADC12 on
-    ADC12CTL1 = ADC12SHP;                   // Use sampling timer
-    ADC12CTL2 |= ADC12RES_2;                // 12-bit conversion results
-    ADC12MCTL0 |= ADC12INCH_5;              // A1 ADC input select; Vref=AVCC
-    ADC12IER0 |= ADC12IE0;                  // Enable ADC conv complete interrupt
+    ADC12CTL0 = ADC12SHT0_2 | ADC12ON;              // Sampling time, S&H=16, ADC12 on
+    ADC12CTL1 = ADC12SHP;            // Use sampling timer
+    ADC12CTL2 |= ADC12RES_2;                        // 12-bit conversion results
+
+
+    ADC12MCTL0 |= ADC12INCH_5;                      // A5 ADC input select; Vref=AVCC
+
+    ADC12IER0 |= ADC12IE0;                          // Enable ADC conv complete interrupt
 }
 
 /*
@@ -550,7 +586,7 @@ magcode readTileMag() {
         adcRead = 0;
         ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
 
-        while(!adcRead)
+        while(adcRead == 0)
            ;
 
         adcAvg = (i == 0) ? lastReadADCValue : (adcAvg + lastReadADCValue);
@@ -605,16 +641,34 @@ void __attribute__ ((interrupt(ADC12_B_VECTOR))) ADC12_ISR (void)
         case ADC12IV__ADC12HIIFG:  break;   // Vector  6:  ADC12BHI
         case ADC12IV__ADC12LOIFG:  break;   // Vector  8:  ADC12BLO
         case ADC12IV__ADC12INIFG:  break;   // Vector 10:  ADC12BIN
+
         case ADC12IV__ADC12IFG0:            // Vector 12:  ADC12MEM0 Interrupt
             lastReadADCValue = ADC12MEM0;
-            adcRead = 1;
+            adcRead++;
 
             // Exit from LPM0 and continue executing main
             __bic_SR_register_on_exit(LPM0_bits);
 
             break;
-        case ADC12IV__ADC12IFG1:   break;   // Vector 14:  ADC12MEM1
-        case ADC12IV__ADC12IFG2:   break;   // Vector 16:  ADC12MEM2
+
+//        case ADC12IV__ADC12IFG1:             // Vector 14:  ADC12MEM1
+//            lastReadADCValue1 = ADC12MEM1;
+//            adcRead++;
+
+            // Exit from LPM0 and continue executing main
+//            __bic_SR_register_on_exit(LPM0_bits);
+
+//            break;
+
+//        case ADC12IV__ADC12IFG2:            // Vector 16:  ADC12MEM2
+//            lastReadADCValue2 = ADC12MEM2;
+//            adcRead++;
+
+            // Exit from LPM0 and continue executing main
+//            __bic_SR_register_on_exit(LPM0_bits);
+
+//            break;
+
         case ADC12IV__ADC12IFG3:   break;   // Vector 18:  ADC12MEM3
         case ADC12IV__ADC12IFG4:   break;   // Vector 20:  ADC12MEM4
         case ADC12IV__ADC12IFG5:   break;   // Vector 22:  ADC12MEM5

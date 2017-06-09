@@ -22,8 +22,9 @@
 /* Keeps track of current module selected */
 int selectedModule = 0;
 
-/* Returns the first tile number detected as being changed with regard to the passed in,
- * current TileState structure, or a negative number if no changes detected. tileStates
+/* Each call checks a new tile on the board until all have been checked, then cycles back
+ * to tile 0. Returns the current tile number checked if any of the read magnets differ from
+ * it's known tileStates value, or a negative number if no changes detected. tileStates
  * must be NUM_TILES in size (one structure for each tile on board */
 int pollTiles(TileState *tileStates) {
     static unsigned int currTileNum = 0;
@@ -32,7 +33,8 @@ int pollTiles(TileState *tileStates) {
 
     selectBoardTile(currTileNum);
 
-    selectMag(M2); //Magnet 2 is baseline detection magnet
+    /* Magnet 2 check */
+    selectMag(M2);
     currCode = readTileMag();
 
     if (tileStates[currTileNum].mag2 != currCode) {
@@ -40,65 +42,29 @@ int pollTiles(TileState *tileStates) {
         returnTileNum = currTileNum;
     }
 
-    selectMag(M1);
-    currCode = readTileMag();
+    /* Magnet 1 check */
+//    selectMag(M1);
+//    currCode = readTileMag();
 
-    if (tileStates[currTileNum].mag1 != currCode) {
-        tileStates[currTileNum].mag1 = currCode;
-        returnTileNum = currTileNum;
-    }
+//    if (tileStates[currTileNum].mag1 != currCode) {
+//        tileStates[currTileNum].mag1 = currCode;
+//        returnTileNum = currTileNum;
+//    }
 
-    selectMag(M0);
-    currCode = readTileMag();
+    /* Maget 0 check */
+//    selectMag(M0);
+//    currCode = readTileMag();
 
-    if (tileStates[currTileNum].mag0 != currCode) {
-        tileStates[currTileNum].mag0 = currCode;
-        returnTileNum = currTileNum;
-    }
+//    if (tileStates[currTileNum].mag0 != currCode) {
+//        tileStates[currTileNum].mag0 = currCode;
+//        returnTileNum = currTileNum;
+//    }
 
+    /* Increment tile number and wrap to 0 if needed */
     currTileNum++;
     if (currTileNum == NUM_TILES)
         currTileNum = 0;
 
-/*
-    int i = 0;
-    for(i = 0; i < NUM_TILES; i++) {
-        selectBoardTile(i);
-        currCode = readTileMag();
-
-        if (tileStates[i].mag2 != currCode) {
-            tileStates[i].mag2 = currCode;
-            returnTileNum = i;
-            break;
-        }
-    }
-
-    selectMag(M0); //Magnet 2 is baseline detection magnet
-    i = 0;
-    for(i = 0; i < NUM_TILES; i++) {
-        selectBoardTile(i);
-        currCode = readTileMag();
-
-        if (tileStates[i].mag0 != currCode) {
-            tileStates[i].mag0 = currCode;
-            returnTileNum = i;
-            break;
-        }
-    }
-
-    selectMag(M1); //Magnet 2 is baseline detection magnet
-    i = 0;
-    for(i = 0; i < NUM_TILES; i++) {
-        selectBoardTile(i);
-        currCode = readTileMag();
-
-        if (tileStates[i].mag1 != currCode) {
-            tileStates[i].mag1 = currCode;
-            returnTileNum = i;
-            break;
-        }
-    }
-*/
     return returnTileNum;
 }
 
@@ -108,7 +74,7 @@ int pollTiles(TileState *tileStates) {
  * Don't fret about the divisions and modulos, as the module dimensions are bases of 2 and will be
  * optimized to shifts and masks :) (or you can do it youself if you reeeeaaally want. So, if you redesign
  * a tile module, it's probably a good idea to keep the dimensions in base 2 numbers. That, or rework
- * this function with a lookup table. Up to you, dawg.  */
+ * this function with a lookup table. Up to you, dawg. */
 void selectBoardTile(int tileNum) {
     int rowNum, colNum, moduleNum, moduleTileNum;
 
@@ -147,7 +113,7 @@ void selectMag(magnet mag) {
         break;
     }
 
-    __delay_cycles(200);
+    __delay_cycles(200); // to give time to the mux to switch
 }
 
 /* Sets the correct MUX selection pins so that all modules have their outputs set for modTileNum.
@@ -159,14 +125,29 @@ void selectModuleTile(int modTileNum) {
     P4OUT |= (modTileNum << 1);
 }
 
-/* Sets the correct MUX selection pins so that the ADC is receiving output from moduleNum.
- * Particular application uses pins 0-2 on port 3, so nothing fancy needed. Alternatively,
- * define MODULE_SEL0-MODULE_SEL2 in "main.h" and set them the old-fashion way */
+/* Meant to setsthe correct MUX selection pins so that the ADC is receiving output from moduleNum.
+ * That's what this function WILL have, if an auxillary board is designed that muxes together multiple
+ * modules. Currently, we're just feeding each module output into a different ADC pin and this function
+ * sets the number of the module whose ADC pin we need for the next sensor read */
 void selectModule(int moduleNum) {
     selectedModule = moduleNum;
 
-    //P3OUT &= ~MODULE_CTRL;
-    //P3OUT |= moduleNum;
+    ADC12CTL0 &= ~ADC12ENC;
+    ADC12MCTL0 &= ~ADC12INCH_5 & ~ADC12INCH_4 & ~ADC12INCH_15;
+
+    switch (selectedModule) {
+    case 0:
+        ADC12MCTL0 |= ADC12INCH_5;                      // A5 ADC input select; Vref=AVCC
+        break;
+    case 1:
+        ADC12MCTL0 |= ADC12INCH_4;                      // A4 ADC input select; Vref=AVCC
+        break;
+    case 2:
+        ADC12MCTL0 |= ADC12INCH_15;                     // A15 ADC input select; Vref=AVCC
+        break;
+    }
+
+    __delay_cycles(500);
 }
 
 /* Determines the type of the tile represented by the TileState structure pointed to by *tile, done through
@@ -174,7 +155,7 @@ void selectModule(int moduleNum) {
 void determineType(TileState *tile) {
     if (tile->mag2 == S1 || tile->mag2 == N1) { /* Gates & sources have a mag2 value of magnitude X1 */
         switch (tile->mag0) {
-        case U:                             /* gates have mag0 value of U */
+        case U:                                 /* gates have mag0 value of U */
             switch (tile->mag1) {
             case N1:
                 tile->type = AND;
@@ -193,7 +174,7 @@ void determineType(TileState *tile) {
                 break;
             }
             break;
-        case N1:                            /* Sources have a mag0 value of N1 */
+        case N1:                                /* Sources have a mag0 value of N1 */
             switch (tile->mag1) {
             case N1:
                 tile->type = SOURCE_A;
@@ -212,7 +193,7 @@ void determineType(TileState *tile) {
                 break;
             }
             break;
-        case S1:                            /* Probes have a mag0 value of S1 */
+        case S1:                                /* Probes have a mag0 value of S1 */
             switch (tile->mag1) {
             case N1:
                 tile->type = PROBE_A;

@@ -20,6 +20,7 @@ typedef struct Node {
 
     uint8_t visited;                        //for recursive graph traversal
     digiVal value;                          //also for graph traversal
+    int id;                                 //for indentifying during debugging
     struct Node *next;                      //for use in the free list
 } Node;
 

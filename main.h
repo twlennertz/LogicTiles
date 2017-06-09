@@ -11,13 +11,13 @@
 
 /* Defines for the number and layout of modules. Must be in a rectangular layout
  * for the modules, but works with any particular dimmension of such. */
-#define NUM_TILES (8)       //8 * number of modules comprising the board
+#define NUM_TILES (24)       //8 * number of modules comprising the board
 
 #define MODULE_COLUMNS (1)  //The number of modules making up the board's width
-#define MODULE_ROWS (1)     //The number of modules making up the board's height
+#define MODULE_ROWS (3)     //The number of modules making up the board's height
 
 #define TILE_WIDTH (4)      //4 * MODULE_COLUMNS
-#define TILE_HEIGHT (2)     //2 * MODULE_ROWS
+#define TILE_HEIGHT (6)     //2 * MODULE_ROWS
 
 /* The maximum possible nodes that could exist in a graph produced by this board.
  * Alternatively, just calculate it and put that as a straight define. Can also
@@ -34,8 +34,8 @@
  * that range further from U than N2 and S2 */
 #define U_MIN 0x4B0     //Min of the no-magnet-detected range
 #define U_MAX 0x52F     //Max of the no-magnet-detected range
-#define S2_MIN 0x410    //Min of the "weak" south magnet range.
-#define N2_MAX 0x5CF    //Max of the "weak" north magnet range
+#define S2_MIN 0x400    //Min of the "weak" south magnet range.
+#define N2_MAX 0x5DF    //Max of the "weak" north magnet range
 
 /* The various states of the main loop state machine */
 typedef enum{IDLE_POLL, CMD_PARSE, UPDATE_CKT} state;
