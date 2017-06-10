@@ -1,4 +1,5 @@
 <h2>Digital Logic Tile Board Project</h2>
+
 Spring 2017 Senior Project
 
 Cal Poly CPE Department
