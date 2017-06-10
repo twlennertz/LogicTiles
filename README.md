@@ -1,7 +1,9 @@
 Digital Logic Tile Board Project
 
 Spring 2017 Senior Project
+
 Cal Poly CPE Department
+
 Authors: Tristan Lennertz & Andrew Wheeler
 
 main: The main state machine loop, inits, terminal interface and commands, and ISRs
