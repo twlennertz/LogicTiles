@@ -1,7 +1,11 @@
-/* Various typedefs and function declarations concerning the tile encodings
+/* MSP430 Logic Tiles Project - tiles.h
+ *
+ * Various typedefs and function declarations concerning the tile encodings
  * and actions with them, regardless of the number of modules or particular pins used.
  *
  * See "main.h" for implementation-specific defines.
+ *
+ * Authors: Tristan Lennertz & Andrew Wheeler
  */
 
 #ifndef TILES_H_
@@ -43,8 +47,8 @@ void selectMag(magnet m);
 void selectBoardTile(int tileNum);
 void selectModuleTile(int modTileNum);
 void selectModule(int moduleNum);
+void updateTile(unsigned int tileNum, TileState *tileStates);
 void determineType(TileState *tile);
-int isActiveType(TileState *tile);
 void printADC(uint16_t value);
 
 /* Might not need - from testing phase */
