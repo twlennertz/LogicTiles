@@ -1,4 +1,4 @@
-Digital Logic Tile Board Project
+#Digital Logic Tile Board Project
 Spring 2017 Senior Project
 Cal Poly CPE Department
 Authors: Tristan Lennertz & Andrew Wheeler
