@@ -1,9 +1,11 @@
 //***************************************************************************************
-// MSP430 Logic Tile State Machine
+// MSP430 Logic Tiles Project - main.c
 // Spring 2017 Senior Project
 // Cal Poly CPE Department
 //
-// Tristan Lennertz & Andrew Wheeler
+// The Main Loop State Machine, initializations, terminal commands, and ISRs
+//
+// Authors: Tristan Lennertz & Andrew Wheeler
 //***************************************************************************************
 
 #include <msp430.h>
@@ -26,35 +28,31 @@ digiVal currSourceC = ZERO;
 digiVal currSourceD = ZERO;
 
 /* Current Nodes and Tiles of Probe Blocks */
-Node *currProbeANode = 0;
-Node *currProbeBNode = 0;
-Node *currProbeCNode = 0;
-Node *currProbeDNode = 0;
+Node *currProbeANode = NULL;
+Node *currProbeBNode = NULL;
+Node *currProbeCNode = NULL;
+Node *currProbeDNode = NULL;
 
-TileState *currProbeATile = 0;
-TileState *currProbeBTile = 0;
-TileState *currProbeCTile = 0;
-TileState *currProbeDTile = 0;
+TileState *currProbeATile = NULL;
+TileState *currProbeBTile = NULL;
+TileState *currProbeCTile = NULL;
+TileState *currProbeDTile = NULL;
 
 /* Holds last read value of ADC for each module's output to an ADC pin */
 static volatile uint16_t lastReadADCValue = 0;
-//static volatile uint16_t lastReadADCValue1 = 0;
-//static volatile uint16_t lastReadADCValue2 = 0;
 
 /* RX receive buffer */
-#define RX_BUFFER_SIZE 300
+#define RX_BUFFER_SIZE 150
 static char uBuff[RX_BUFFER_SIZE + 1];
 static volatile unsigned int buffIndex = 0;
 static char lastRXChar;
 
 /* TX ring buffer */
-#define PRINT_BUFFER_SIZE 1000
+#define PRINT_BUFFER_SIZE 500
 static char printBuff[PRINT_BUFFER_SIZE];
 static unsigned int ringNdx = 0;
 static unsigned int printNdx = 0;
 static unsigned int numPendingTX = 0;
-
-#define PROMPT_STRING ">: "
 
 /*Flags*/
 static volatile char rxPending = 0;
@@ -78,30 +76,23 @@ int main(void) {
         switch (currentState) {
 
         case IDLE_POLL:
-            //__disable_interrupt();
             currentState = idlePoll();
-            //__enable_interrupt();
             break;
 
         case CMD_PARSE:
-            //__disable_interrupt();
             currentState = cmdParse();
-           // __enable_interrupt();
             break;
 
         case UPDATE_CKT:
-            //__disable_interrupt();
+            /* call printProbes here, or something similar. Right now we just have printProbes
+             * called manually via terminal */
             currentState = IDLE_POLL;
-            //currentState = updateCkt();
-            //__enable_interrupt();
             break;
 
         default:
             break;
         }
     }
-
-    return 0;
 }
 
 /* Checks for a pending serial communication and dispatches to a processing state if detected.
@@ -125,15 +116,17 @@ state idlePoll() {
         uPrint(tempBuff);
 #endif
 
-        updateTile(changedTile);
+        updateTile(changedTile, tileStates);
         insertTile(changedTile, tileStates);
 
-        //nextState = UPDATE_CKT;
+        nextState = UPDATE_CKT;
     }
   
     return nextState;
 }
 
+/* Parses the RX buffer, checking for known commands. If a match is found,
+ * dispatches to command function. Otherwise, just return */
 state cmdParse() {
     char* bufPtr = uBuff;
 
@@ -168,6 +161,8 @@ state cmdParse() {
     return IDLE_POLL;
 }
 
+/* Runs through every TileState structure, printing its type and node id numbers
+ * of each of its side nodes, if any */
 void printTiles() {
     unsigned int i;
     char buffer[200];
@@ -278,10 +273,13 @@ void printTiles() {
         sprintf(buffer, "%s%s%s", typeStr, (tileStates[i].orientation == -1) ? " (flipped)" : "", bigBuff);
         uPrint(buffer);
 
-        __delay_cycles(200000);
+        /* let the TX buffer empty a bit */
+        __delay_cycles(400000);
     }
 }
 
+/* Checks for which probes are present on the board, and runs the circuit graph traversal
+ * on each one, starting from the probe in question. Then prints results */
 void printProbes() {
     uPrint("\r\n");
 
@@ -303,15 +301,93 @@ void printProbes() {
             break;
         }
 
+#ifdef _DEBUG_ON
+       char buf[30];
+       sprintf(buf, "\t\tProbe Left Node: %d\r\n", currProbeANode->id);
+       uPrint(buf);
+#endif
+    }
+
+    if (currProbeBTile && currProbeBNode) {
+        uPrint("\tProbe 2: ");
+        unvisitAllNodes(tileStates);
+
+        switch (getNodeValue(currProbeBNode, currProbeBTile)) {
+        case ONE:
+            uPrint("1\r\n");
+            break;
+        case ZERO:
+            uPrint("0\r\n");
+            break;
+        case INDETERMINATE:
+            uPrint("Indeterminate -- poorly formed circuit\r\n");
+            break;
+        default:
+            break;
+        }
+
+#ifdef _DEBUG_ON
+       char buf[30];
+       sprintf(buf, "\t\tProbe Left Node: %d\r\n", currProbeBNode->id);
+       uPrint(buf);
+#endif
+    }
+
+    if (currProbeCTile && currProbeCNode) {
+        uPrint("\tProbe 3: ");
+        unvisitAllNodes(tileStates);
+
+        switch (getNodeValue(currProbeANode, currProbeCTile)) {
+        case ONE:
+            uPrint("1\r\n");
+            break;
+        case ZERO:
+            uPrint("0\r\n");
+            break;
+        case INDETERMINATE:
+            uPrint("Indeterminate -- poorly formed circuit\r\n");
+            break;
+        default:
+            break;
+        }
+
+#ifdef _DEBUG_ON
+       char buf[30];
+       sprintf(buf, "\t\tProbe Left Node: %d\r\n", currProbeCNode->id);
+       uPrint(buf);
+#endif
+    }
+
+    if (currProbeDTile && currProbeDNode) {
+        uPrint("\tProbe 4: ");
+        unvisitAllNodes(tileStates);
+
+        switch (getNodeValue(currProbeDNode, currProbeDTile)) {
+        case ONE:
+            uPrint("1\r\n");
+            break;
+        case ZERO:
+            uPrint("0\r\n");
+            break;
+        case INDETERMINATE:
+            uPrint("Indeterminate -- poorly formed circuit\r\n");
+            break;
+        default:
+            break;
+        }
+
+ #ifdef _DEBUG_ON
         char buf[30];
-        sprintf(buf, "\t\tProbe Left Node: %d\r\n", currProbeANode->id);
+        sprintf(buf, "\t\tProbe Left Node: %d\r\n", currProbeDNode->id);
         uPrint(buf);
+#endif
     }
 }
 
+/* Sets the source associated with the passed char, or prints error if none */
 void setSource(char source) {
 #ifdef _DEBUG_ON
-    char tempBuf[50];
+    char tempBuf[30];
     sprintf(tempBuf, "\r\nSource to set: %c", source);
     uPrint(tempBuf);
 #endif
@@ -331,12 +407,25 @@ void setSource(char source) {
         currSourceB = ONE;
         break;
 
+    case 'c':
+    case 'C':
+        uPrint("\tSource C set.\r\n");
+        currSourceB = ONE;
+        break;
+
+    case 'd':
+    case 'D':
+        uPrint("\tSource D set.\r\n");
+        currSourceB = ONE;
+        break;
+
     default:
         uPrint("\tNo such source to set.\r\n");
         break;
     }
 }
 
+/* Clears the source associated with the passed char, or prints error if none */
 void clearSource(char source) {
     uPrint("\r\n");
 
@@ -350,6 +439,18 @@ void clearSource(char source) {
     case 'b':
     case 'B':
         uPrint("\tSource B cleared.\r\n");
+        currSourceB = ZERO;
+        break;
+
+    case 'c':
+    case 'C':
+        uPrint("\tSource C cleared.\r\n");
+        currSourceB = ZERO;
+        break;
+
+    case 'd':
+    case 'D':
+        uPrint("\tSource D cleared.\r\n");
         currSourceB = ZERO;
         break;
 
@@ -414,6 +515,7 @@ void uPrintChar(char c) {
         numPendingTX++;
 }
 
+/* Prints the passed value, in hex. Meant for debugging ADC */
 void printADC(uint16_t value) {
     char buffer[4];
     sprintf(buffer, "%x", value);
@@ -430,10 +532,7 @@ void printCmds() {
     uPrint("\r\n");
 }
 
-void printPrompt() {
-    uPrint(PROMPT_STRING);
-}
-
+/* More of a framework for a potential error-reporting system */
 void reportError(int errorCode) {
 
     switch (errorCode) {
@@ -449,38 +548,6 @@ void reportError(int errorCode) {
     }
 
     uPrint("\r\n>: ");
-}
-
-/* Reads all of the magnets of a passed in board tile number, determining its type
- * and inserting it into the graph structure representing the logic circuit */
-void updateTile(unsigned int tileNum) {
-    selectBoardTile(tileNum);
-
-    /* Need to determine the polarity of mag2 to know the orientation of the tile. North values values
-     * mean normal orientation, South values mean orientation is flipped backwards */
-    selectMag(M2);
-    tileStates[tileNum].mag2 = readTileMag();
-
-    if (tileStates[tileNum].mag2 == N1 || tileStates[tileNum].mag2 == N2) {
-        tileStates[tileNum].orientation = 1; // normal orientation
-
-        selectMag(M0);
-        tileStates[tileNum].mag0 = readTileMag();
-
-        selectMag(M1);
-        tileStates[tileNum].mag1 = readTileMag();
-    }
-    else if (tileStates[tileNum].mag2 == S1 || tileStates[tileNum].mag2 == S2) {
-        tileStates[tileNum].orientation = -1; //flipped orientation
-
-        selectMag(M1);
-        tileStates[tileNum].mag0 = readTileMag();
-
-        selectMag(M0);
-        tileStates[tileNum].mag1 = readTileMag();
-    }
-
-    determineType(&(tileStates[tileNum]));
 }
 
 /* One-time configuration for I/O and various features */
@@ -544,11 +611,6 @@ void initUSART() {
     // Configure USCI_A0 for UART mode
     UCA0CTLW0 = UCSWRST;                    // Put eUSCI in reset
     UCA0CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
-    // Baud Rate calculation
-    // 8000000/(16*9600) = 52.083
-    // Fractional portion = 0.083
-    // User's Guide Table 21-4: UCBRSx = 0x04
-    // UCBRFx = int ( (52.083-52)*16) = 1
     UCA0BRW = 52;                           // 8000000/16/9600
     UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
     UCA0CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
@@ -575,13 +637,13 @@ void initTileState() {
 }
 
 /* Blocking function that initializes and waits out an ADC read and returns the magnet
- * encoding for the currently mux-selected hall-effect sensor (selected with selectBoardTile() and selectMag())
- * in tiles.c */
+ * encoding for the currently mux-selected hall-effect sensor (selected with selectBoardTile() and selectMag()
+ * in tiles.c). Performs multiple reads and averages them before interpreting the encoding value */
 magcode readTileMag() {
     magcode returnCode = U;
     uint16_t adcAvg, i = 0;
 
-    /* Average some reads together */
+    /* Average reads together */
     for (i = 0, adcAvg = 0; i < ADC_AVG_COUNT; i++) {
         adcRead = 0;
         ADC12CTL0 |= ADC12ENC | ADC12SC;        // Start sampling/conversion
@@ -593,9 +655,6 @@ magcode readTileMag() {
     }
 
     adcAvg /= i;
-
-    //__bis_SR_register(LPM0_bits | GIE);     // LPM0, ADC12_ISR will force exit
-    //__no_operation();                       // For debugger
 
 #ifdef _ADC_DUMP
     uPrint("ADC VAL: ");
@@ -644,30 +703,12 @@ void __attribute__ ((interrupt(ADC12_B_VECTOR))) ADC12_ISR (void)
 
         case ADC12IV__ADC12IFG0:            // Vector 12:  ADC12MEM0 Interrupt
             lastReadADCValue = ADC12MEM0;
-            adcRead++;
+            adcRead = 1;
 
             // Exit from LPM0 and continue executing main
             __bic_SR_register_on_exit(LPM0_bits);
 
             break;
-
-//        case ADC12IV__ADC12IFG1:             // Vector 14:  ADC12MEM1
-//            lastReadADCValue1 = ADC12MEM1;
-//            adcRead++;
-
-            // Exit from LPM0 and continue executing main
-//            __bic_SR_register_on_exit(LPM0_bits);
-
-//            break;
-
-//        case ADC12IV__ADC12IFG2:            // Vector 16:  ADC12MEM2
-//            lastReadADCValue2 = ADC12MEM2;
-//            adcRead++;
-
-            // Exit from LPM0 and continue executing main
-//            __bic_SR_register_on_exit(LPM0_bits);
-
-//            break;
 
         case ADC12IV__ADC12IFG3:   break;   // Vector 18:  ADC12MEM3
         case ADC12IV__ADC12IFG4:   break;   // Vector 20:  ADC12MEM4

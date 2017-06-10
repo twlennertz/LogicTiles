@@ -1,6 +1,9 @@
-/* Contains most of the application-specific defines for the tiles, including
- * specific pins used, ADC threshholds, and configuration of the modules making
- * up the board. */
+/* MSP430 Logic Tiles Project - main.h
+ *
+ * Most of the implementation-specific defines for the project.
+ *
+ * Authors: Tristan Lennertz & Andrew Wheeler
+ */
 
 #ifndef MAIN_H
 #define MAIN_H
@@ -46,16 +49,16 @@ typedef enum {ZERO, ONE, INDETERMINATE, UNVISITED} digiVal;
 /* Specific Pins used for ADC, Tile Muxing, and Magnet Muxing */
 #define ADC1_PIN 0x06 //Port 1, Pin 5 (A5)
 
-#define TILE_CTRL 0b00001110 //Pins 1-3 on Port 4
+#define TILE_CTRL 0b00001110    //Pins 1-3 on Port 4
 #define TILE_SEL0 (BIT1)
 #define TILE_SEL1 (BIT2)
 #define TILE_SEL2 (BIT3)
 
-#define MAG_CTRL 0b01100000 //Pins 5 & 6 on Port 2
+#define MAG_CTRL 0b01100000     //Pins 5 & 6 on Port 2
 #define MAG_SEL0 (BIT5)
 #define MAG_SEL1 (BIT6)
 
-#define MODULE_CTRL 0b00000111 //Pins 0 - 2 on Port 3
+#define MODULE_CTRL 0b00000111  //Pins 0 - 2 on Port 3
 #define MODULE_SEL0 (BIT0);
 #define MODULE_SEL1 (BIT1);
 #define MODULE_SEL2 (BIT2);
@@ -105,7 +108,6 @@ void setSource(char source);
 void clearSource(char source);
 char *nextToken(char *tok);
 
-void updateTile(unsigned int tileNum);
 magcode readTileMag();
 
 /* Quick and dirty defines from our specific applications */

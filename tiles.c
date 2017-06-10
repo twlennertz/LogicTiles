@@ -1,4 +1,5 @@
-/*
+/* MSP430 Logic Tiles Project - tiles.c
+ *
  * The various tile selection and reading utility functions. It should be noted
  * that these are intended to work for a board comprised of a rectangular configuration
  * of module (set the dimensions in "main.h"). MAG_SEL0-MAG_SEL1 and TILE_SEL0-TILE_SEL2
@@ -12,7 +13,9 @@
  * selectModule() sets which module output will be muxed to and read on the ADC
  * readTileMag() will return the value of whatever was selected with the above
  * pollTiles() and selectBoardTile() work on a board level, as long as the correct
- *  dimmensions have been defined.
+ *  dimensions have been defined.
+ *
+ *  Authors: Tristan Lennertz & Andrew Wheeler
  */
 
 #include <msp430.h>
@@ -43,22 +46,22 @@ int pollTiles(TileState *tileStates) {
     }
 
     /* Magnet 1 check */
-//    selectMag(M1);
-//    currCode = readTileMag();
+    selectMag(M1);
+    currCode = readTileMag();
 
-//    if (tileStates[currTileNum].mag1 != currCode) {
-//        tileStates[currTileNum].mag1 = currCode;
-//        returnTileNum = currTileNum;
-//    }
+    if (tileStates[currTileNum].mag1 != currCode) {
+        tileStates[currTileNum].mag1 = currCode;
+        returnTileNum = currTileNum;
+    }
 
     /* Maget 0 check */
-//    selectMag(M0);
-//    currCode = readTileMag();
+    selectMag(M0);
+    currCode = readTileMag();
 
-//    if (tileStates[currTileNum].mag0 != currCode) {
-//        tileStates[currTileNum].mag0 = currCode;
-//        returnTileNum = currTileNum;
-//    }
+    if (tileStates[currTileNum].mag0 != currCode) {
+        tileStates[currTileNum].mag0 = currCode;
+        returnTileNum = currTileNum;
+    }
 
     /* Increment tile number and wrap to 0 if needed */
     currTileNum++;
@@ -125,10 +128,10 @@ void selectModuleTile(int modTileNum) {
     P4OUT |= (modTileNum << 1);
 }
 
-/* Meant to setsthe correct MUX selection pins so that the ADC is receiving output from moduleNum.
+/* Meant to set the correct MUX selection pins so that the ADC is receiving output from moduleNum.
  * That's what this function WILL have, if an auxillary board is designed that muxes together multiple
  * modules. Currently, we're just feeding each module output into a different ADC pin and this function
- * sets the number of the module whose ADC pin we need for the next sensor read */
+ * sets the number of the module whose ADC pin we need for the next sensor read, and configures the ADC for it */
 void selectModule(int moduleNum) {
     selectedModule = moduleNum;
 
@@ -147,7 +150,39 @@ void selectModule(int moduleNum) {
         break;
     }
 
-    __delay_cycles(500);
+    __delay_cycles(500);                                // Let the ADC switch
+}
+
+/* Reads all of the magnets of a passed in board tile number, determining its type
+ * and inserting it into the graph structure representing the logic circuit */
+void updateTile(unsigned int tileNum, TileState *tileStates) {
+    selectBoardTile(tileNum);
+
+    /* Need to determine the polarity of mag2 to know the orientation of the tile. North values values
+     * mean normal orientation, South values mean orientation is flipped backwards */
+    selectMag(M2);
+    tileStates[tileNum].mag2 = readTileMag();
+
+    if (tileStates[tileNum].mag2 == N1 || tileStates[tileNum].mag2 == N2) {
+        tileStates[tileNum].orientation = 1; // normal orientation
+
+        selectMag(M0);
+        tileStates[tileNum].mag0 = readTileMag();
+
+        selectMag(M1);
+        tileStates[tileNum].mag1 = readTileMag();
+    }
+    else if (tileStates[tileNum].mag2 == S1 || tileStates[tileNum].mag2 == S2) {
+        tileStates[tileNum].orientation = -1; //flipped orientation
+
+        selectMag(M1);
+        tileStates[tileNum].mag0 = readTileMag();
+
+        selectMag(M0);
+        tileStates[tileNum].mag1 = readTileMag();
+    }
+
+    determineType(&(tileStates[tileNum]));
 }
 
 /* Determines the type of the tile represented by the TileState structure pointed to by *tile, done through
@@ -279,15 +314,4 @@ void determineType(TileState *tile) {
         tile->orientation = 1;
         tile->type = EMPTY;
     }
-}
-
-int isActiveType(TileState *tile) {
-
-    int isActive = 0;
-
-    if ((tile->mag2 == S1 || tile->mag2 == N1) && ((tile->mag0 == U) || (tile->mag0 == N1))) {
-        isActive = 1;
-    }
-
-    return isActive;
 }

@@ -1,27 +1,21 @@
+/* MSP430 Logic Tiles Project - graph.h
+ *
+ * Authors: Tristan Lennertz & Andrew Wheeler
+ */
+
 #ifndef GRAPH_H_
 #define GRAPH_H_
-
-typedef enum {active, passive, undecided} nodeType;
 
 typedef struct Node {
     /* Two tiles the node is bridging */
     TileState *tile1;
     TileState *tile2;
 
-    /*
-     * States what type of node it is:
-     * -Active nodes are ones that are direct outputs of functions (i.e gates)
-     * -Passive nodes are ones that connect two wires and do not produce a signal
-     * but instead propagate them.
-     * -Undecided nodes are only connected on one side and it is undetermined if
-     * the node is active or passive.
-     */
-    nodeType currentType;
-
     uint8_t visited;                        //for recursive graph traversal
     digiVal value;                          //also for graph traversal
-    int id;                                 //for indentifying during debugging
     struct Node *next;                      //for use in the free list
+
+    int id;                                 //for indentifying during debugging
 } Node;
 
 digiVal getNodeValue(Node *currNode, TileState *currTile);
